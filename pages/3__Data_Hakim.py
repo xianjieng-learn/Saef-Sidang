@@ -6,6 +6,7 @@ from datetime import date
 from typing import Dict, List, Set, Tuple
 import pandas as pd
 import streamlit as st
+from app_core.login import _ensure_auth  
 
 # =================== Page meta ===================
 st.set_page_config(page_title="🧑‍⚖️      Data & Cuti Hakim", layout="wide")

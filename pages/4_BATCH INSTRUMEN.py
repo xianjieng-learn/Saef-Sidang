@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import date, datetime
 from io import BytesIO
 from xml.sax.saxutils import escape as html_escape
-
+from app_core.login import _ensure_auth  
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak

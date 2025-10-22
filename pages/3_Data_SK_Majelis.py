@@ -5,7 +5,7 @@ import re
 import math
 from pathlib import Path
 from typing import Optional, List
-
+from app_core.login import _ensure_auth  
 # --- Hilangkan impor DB ---
 # from db import get_conn, init_db     # (hapus)
 from app_core.exports import export_csv

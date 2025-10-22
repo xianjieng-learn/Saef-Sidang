@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 import pandas as pd
 import streamlit as st
+from app_core.login import _ensure_auth  
 
 # masih butuh helpers original
 from app_core.helpers import HARI_MAP, format_tanggal_id, compute_nomor_tipe
@@ -32,6 +33,7 @@ BACKUP_DIR = DATA_DIR / "backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 AUDIT_LOG_CSV = DATA_DIR / "audit_log.csv"
 
+_ensure_auth()
 # ========== BACKUP HELPERS ==========
 def _backup_enabled() -> bool:
     try:
@@ -2034,688 +2036,692 @@ with tab2:
     else:
         st.info("Belum ada data rekap (data/rekap.csv kosong).")
 
-# ------------------ TAB 3: DEBUG JS GHOIB ----------------
-with tab3:
-    st.subheader("🧪 Debug Pemilihan & Beban JS Ghoib")
+is_admin = st.session_state.get("auth_role") == "admin"
+if is_admin:
+    # ------------------ TAB 3: DEBUG JS GHOIB ----------------
+    with tab3:
+        st.subheader("🧪 Debug Pemilihan & Beban JS Ghoib")
 
-    p = DATA_DIR / "js_ghoib.csv"
-    st.caption(f"File: `{p.as_posix()}`")
+        p = DATA_DIR / "js_ghoib.csv"
+        st.caption(f"File: `{p.as_posix()}`")
 
-    df = _load_js_ghoib_csv()
-    if df.empty:
-        st.warning("js_ghoib.csv kosong / tidak ditemukan. Buat file dengan kolom minimal: nama,jml_ghoib,aktif.")
-    else:
-        show = df[["nama","jml_ghoib"] + (["aktif"] if "aktif" in df.columns else [])].copy()
-        show = show.sort_values(by=["jml_ghoib","nama"], ascending=[True, True], kind="stable")
-        st.dataframe(show, width='stretch', height=min(360, 52 + 28*len(show)))
+        df = _load_js_ghoib_csv()
+        if df.empty:
+            st.warning("js_ghoib.csv kosong / tidak ditemukan. Buat file dengan kolom minimal: nama,jml_ghoib,aktif.")
+        else:
+            show = df[["nama","jml_ghoib"] + (["aktif"] if "aktif" in df.columns else [])].copy()
+            show = show.sort_values(by=["jml_ghoib","nama"], ascending=[True, True], kind="stable")
+            st.dataframe(show, width='stretch', height=min(360, 52 + 28*len(show)))
 
-        winner = _choose_js_ghoib_db(rekap_df, use_aktif=True)
-        if winner:
-            cur = show[show["nama"].str.lower() == winner.lower()]
-            cur_n = None if cur.empty else (cur.iloc[0]["jml_ghoib"] if pd.notna(cur.iloc[0]["jml_ghoib"]) else 0)
-            st.success(f"JS Ghoib kandidat saat ini: **{winner}** (beban={cur_n})")
+            winner = _choose_js_ghoib_db(rekap_df, use_aktif=True)
+            if winner:
+                cur = show[show["nama"].str.lower() == winner.lower()]
+                cur_n = None if cur.empty else (cur.iloc[0]["jml_ghoib"] if pd.notna(cur.iloc[0]["jml_ghoib"]) else 0)
+                st.success(f"JS Ghoib kandidat saat ini: **{winner}** (beban={cur_n})")
 
-        st.markdown("---")
-        c1, c2, c3, c4 = st.columns([1.5,1,1,1])
-        with c1:
-            target = st.selectbox("Pilih JS", [""] + show["nama"].tolist(), index=0, key=K("t3","dbg_js_pick"))
-        with c2:
-            if st.button("➕ +1 beban", width='stretch', key=K("t3","plus_one")):
-                if target:
-                    _bump_js_ghoib(target, +1)
-                    st.success("Beban ditambah +1"); st.rerun()
-        with c3:
-            if st.button("♻️ Set 0", width='stretch', key=K("t3","set_zero")):
-                if target:
-                    raw = _load_js_ghoib_csv()
-                    if not raw.empty:
-                        cur = raw.loc[raw["nama"].str.lower() == target.lower(), "jml_ghoib"]
-                        if not cur.empty:
-                            _bump_js_ghoib(target, -int(cur.iloc[0] or 0))
-                            st.success("Beban di-set 0"); st.rerun()
-        with c4:
-            if st.button("🔄 Refresh", width='stretch', key=K("t3","refresh")):
-                st.rerun()
+            st.markdown("---")
+            c1, c2, c3, c4 = st.columns([1.5,1,1,1])
+            with c1:
+                target = st.selectbox("Pilih JS", [""] + show["nama"].tolist(), index=0, key=K("t3","dbg_js_pick"))
+            with c2:
+                if st.button("➕ +1 beban", width='stretch', key=K("t3","plus_one")):
+                    if target:
+                        _bump_js_ghoib(target, +1)
+                        st.success("Beban ditambah +1"); st.rerun()
+            with c3:
+                if st.button("♻️ Set 0", width='stretch', key=K("t3","set_zero")):
+                    if target:
+                        raw = _load_js_ghoib_csv()
+                        if not raw.empty:
+                            cur = raw.loc[raw["nama"].str.lower() == target.lower(), "jml_ghoib"]
+                            if not cur.empty:
+                                _bump_js_ghoib(target, -int(cur.iloc[0] or 0))
+                                st.success("Beban di-set 0"); st.rerun()
+            with c4:
+                if st.button("🔄 Refresh", width='stretch', key=K("t3","refresh")):
+                    st.rerun()
 
+is_admin = st.session_state.get("auth_role") == "admin"
+if is_admin:
 # ------------------ TAB 4: PENGATURAN -------------------
-with tab4:
-    st.subheader("⚙️ Pengaturan Aplikasi")
-    cfg = get_config()
+    with tab4:
+        st.subheader("⚙️ Pengaturan Aplikasi")
+        cfg = get_config()
 
-    # ambil bcfg untuk default UI beban
-    bcfg = cfg.get("beban", _DEFAULT_CONFIG.get("beban", {
-        "window_days": 90,
-        "half_life_days": 30,
-        "min_weight": 0.05,
-        "use_decay": True,
-    }))
+        # ambil bcfg untuk default UI beban
+        bcfg = cfg.get("beban", _DEFAULT_CONFIG.get("beban", {
+            "window_days": 90,
+            "half_life_days": 30,
+            "min_weight": 0.05,
+            "use_decay": True,
+        }))
 
-    # =================== FORM PENGATURAN (SEMUA INPUT + TOMBOL SAVE DI DALAM) ===================
-    with st.form(K("t4","cfg_form")):
-        # ---------- Rotasi ----------
-        st.markdown("#### Rotasi PP/JS")
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            mode = st.selectbox(
-                "Mode rotasi",
-                ["pair4", "roundrobin"],
-                index=0 if cfg["rotasi"].get("mode","pair4")=="pair4" else 1,
-                help="pair4: P1J1→P2J1→P1J2→P2J2 (bisa custom urutan). roundrobin: putar PP dan JS bersamaan."
+        # =================== FORM PENGATURAN (SEMUA INPUT + TOMBOL SAVE DI DALAM) ===================
+        with st.form(K("t4","cfg_form")):
+            # ---------- Rotasi ----------
+            st.markdown("#### Rotasi PP/JS")
+            c1, c2 = st.columns([1, 1])
+            with c1:
+                mode = st.selectbox(
+                    "Mode rotasi",
+                    ["pair4", "roundrobin"],
+                    index=0 if cfg["rotasi"].get("mode","pair4")=="pair4" else 1,
+                    help="pair4: P1J1→P2J1→P1J2→P2J2 (bisa custom urutan). roundrobin: putar PP dan JS bersamaan."
+                )
+            with c2:
+                inc = st.toggle(
+                    "Naik indeks saat simpan",
+                    value=bool(cfg["rotasi"].get("increment_on_save", True))
+                )
+
+            order = cfg["rotasi"].get("order", ["P1J1","P2J1","P1J2","P2J2"])
+            st.caption("Urutan custom (dipakai jika mode = pair4)")
+            ocol = st.columns(4)
+            keys = ["P1J1","P2J1","P1J2","P2J2"]
+            idx0 = keys.index(order[0]) if order and order[0] in keys else 0
+            idx1 = keys.index(order[1]) if len(order)>1 and order[1] in keys else 1
+            idx2 = keys.index(order[2]) if len(order)>2 and order[2] in keys else 2
+            idx3 = keys.index(order[3]) if len(order)>3 and order[3] in keys else 3
+            k0 = ocol[0].selectbox("1st", keys, index=idx0, key=K("t4","ord0"))
+            k1 = ocol[1].selectbox("2nd", keys, index=idx1, key=K("t4","ord1"))
+            k2 = ocol[2].selectbox("3rd", keys, index=idx2, key=K("t4","ord2"))
+            k3 = ocol[3].selectbox("4th", keys, index=idx3, key=K("t4","ord3"))
+
+            st.markdown("---")
+
+            # ---------- Backup (INPUT SAJA; LIST & PRUNE DI LUAR FORM) ----------
+            st.markdown("#### 🗄️ Backup")
+            bk = cfg.get("backup", {})
+            bk_enabled_ui = st.toggle(
+                "Aktifkan backup otomatis",
+                value=bool(bk.get("enabled", True)),
+                key=K("t4","bk_enabled")
             )
-        with c2:
-            inc = st.toggle(
-                "Naik indeks saat simpan",
-                value=bool(cfg["rotasi"].get("increment_on_save", True))
+            bk_dir_ui = st.text_input(
+                "Folder backup",
+                value=str(bk.get("dir","data/_backup")),
+                key=K("t4","bk_dir")
+            )
+            bk_keep_ui = st.number_input(
+                "Max snapshot per file",
+                min_value=1, step=1,
+                value=int(bk.get("max_keep", 10)),
+                key=K("t4","bk_keep")
             )
 
-        order = cfg["rotasi"].get("order", ["P1J1","P2J1","P1J2","P2J2"])
-        st.caption("Urutan custom (dipakai jika mode = pair4)")
-        ocol = st.columns(4)
-        keys = ["P1J1","P2J1","P1J2","P2J2"]
-        idx0 = keys.index(order[0]) if order and order[0] in keys else 0
-        idx1 = keys.index(order[1]) if len(order)>1 and order[1] in keys else 1
-        idx2 = keys.index(order[2]) if len(order)>2 and order[2] in keys else 2
-        idx3 = keys.index(order[3]) if len(order)>3 and order[3] in keys else 3
-        k0 = ocol[0].selectbox("1st", keys, index=idx0, key=K("t4","ord0"))
-        k1 = ocol[1].selectbox("2nd", keys, index=idx1, key=K("t4","ord1"))
-        k2 = ocol[2].selectbox("3rd", keys, index=idx2, key=K("t4","ord2"))
-        k3 = ocol[3].selectbox("4th", keys, index=idx3, key=K("t4","ord3"))
+            st.markdown("---")
 
+            # ---------- Hakim ----------
+            st.markdown("#### Hakim")
+            jab_regex = st.text_input(
+                "Regex jabatan yang dikecualikan dari auto-pick",
+                value=cfg["hakim"].get("exclude_jabatan_regex", r"\b(ketua|wakil)\b"),
+                help="Case-insensitive. Contoh: \\b(ketua|wakil)\\b"
+            )
+            show_cuti_default = st.toggle(
+                "Dropdown: tampilkan yang cuti (default)",
+                value=bool(cfg["hakim"].get("dropdown_show_cuti_default", False)),
+                key=K("t4","cutidef")
+            )
+            cool_days = st.number_input(
+                "Cooldown hari (0 = mati)",
+                min_value=0, step=1,
+                value=int(cfg["hakim"].get("cooldown_days", 0)),
+                key=K("t4","cooldays")
+            )
+            # Elastic + streak + ambang gap absolut
+            elastic_beta = st.number_input(
+                "Elastic β (0–1) untuk τ relatif",
+                min_value=0.0, max_value=1.0, step=0.05,
+                value=float(cfg["hakim"].get("elastic_beta", 0.20)),
+                help="τ = β × (Lmax − Lmin). Gap ≤ τ ⇒ pemenang masuk cooldown; gap > τ ⇒ tidak di-cooldown.",
+                key=K("t4","elastic_beta")
+            )
+            streak_cap = st.number_input(
+                "Batas beruntun per reset (per hari)",
+                min_value=1, step=1,
+                value=int(cfg["hakim"].get("elastic_streak_cap", 3)),
+                help="Jika hakim yang sama terpilih berturut-turut hingga batas ini, ia dipaksa cooldown sekali meski gap masih besar.",
+                key=K("t4","streak_cap")
+            )
+            min_gap_abs = st.number_input(
+                "Ambang gap absolut untuk cooldown (gap < N)",
+                min_value=0.0, step=0.1,
+                value=float(cfg["hakim"].get("elastic_min_gap_cool", 2.0)),
+                help="Jika (L2−L1) < N, pemenang langsung di-cooldown (di luar aturan τ).",
+                key=K("t4","abs_gap_cool"),
+            )
+
+            st.markdown("---")
+
+            # ---------- Beban ----------
+            st.markdown("#### Beban (rolling window)")
+            bcol0, bcol1, bcol2, bcol3 = st.columns(4)
+            use_decay_ui = bcol0.toggle(
+                "Gunakan peluruhan (half-life)?",
+                value=bool(bcfg.get("use_decay", True)),
+                key=K("t4","use_decay"),
+                help="Jika dimatikan: setiap perkara dalam window dihitung sama (uniform)."
+            )
+            win_days = bcol1.number_input(
+                "Window hari", min_value=1, step=1,
+                value=int(bcfg.get("window_days", 90)),
+                key=K("t4","win_days_cfg"),
+            )
+            half_life = bcol2.number_input(
+                "Half-life hari", min_value=1, step=1,
+                value=int(bcfg.get("half_life_days", 30)),
+                disabled=not use_decay_ui,
+                key=K("t4","half_life_cfg"),
+            )
+            min_w = bcol3.number_input(
+                "Min weight (0-1)", min_value=0.0, step=0.01,
+                value=float(bcfg.get("min_weight", 0.05)),
+                key=K("t4","min_weight_cfg"),
+            )
+
+            st.markdown("---")
+
+            # ---------- Tampilan ----------
+            st.markdown("#### Tampilan")
+            colA, colB = st.columns([1,1])
+            with colA:
+                loc = st.text_input("Locale tanggal", value=cfg["tampilan"].get("tanggal_locale","id-ID"))
+            with colB:
+                longfmt = st.toggle("Tanggal panjang (Senin, 01 Januari 2025)", value=bool(cfg["tampilan"].get("tanggal_long", True)))
+
+            # ===== Tombol SIMPAN harus di DALAM form =====
+            saved = st.form_submit_button("💾 Simpan Pengaturan", type="primary")
+
+        # =================== SETELAH SUBMIT: SIMPAN KE FILE ===================
+        if saved:
+            cfg.setdefault("beban", {})
+            cfg["beban"]["use_decay"] = bool(use_decay_ui)
+            cfg["beban"]["window_days"] = int(win_days)
+            cfg["beban"]["half_life_days"] = int(half_life)
+            cfg["beban"]["min_weight"] = float(min_w)
+
+            cfg["rotasi"]["mode"] = mode
+            cfg["rotasi"]["increment_on_save"] = bool(inc)
+            cfg["rotasi"]["order"] = [k0, k1, k2, k3]
+
+            cfg["hakim"]["exclude_jabatan_regex"] = jab_regex
+            cfg["hakim"]["dropdown_show_cuti_default"] = bool(show_cuti_default)
+            cfg["hakim"]["cooldown_days"] = int(cool_days)
+            cfg["hakim"]["elastic_beta"] = float(elastic_beta)
+            cfg["hakim"]["elastic_streak_cap"] = int(streak_cap)
+            cfg["hakim"]["elastic_min_gap_cool"] = float(min_gap_abs)
+
+            cfg.setdefault("backup", {})
+            cfg["backup"]["enabled"] = bool(bk_enabled_ui)
+            cfg["backup"]["dir"] = str(bk_dir_ui).strip() or "data/_backup"
+            cfg["backup"]["max_keep"] = int(bk_keep_ui)
+
+            cfg["tampilan"]["tanggal_locale"] = loc
+            cfg["tampilan"]["tanggal_long"] = bool(longfmt)
+
+            save_config(cfg)
+            st.success("Pengaturan disimpan.")
+            st.rerun()
+
+        # =================== DI LUAR FORM: LIST SNAPSHOT & PRUNE ===================
         st.markdown("---")
-
-        # ---------- Backup (INPUT SAJA; LIST & PRUNE DI LUAR FORM) ----------
-        st.markdown("#### 🗄️ Backup")
-        bk = cfg.get("backup", {})
-        bk_enabled_ui = st.toggle(
-            "Aktifkan backup otomatis",
-            value=bool(bk.get("enabled", True)),
-            key=K("t4","bk_enabled")
-        )
-        bk_dir_ui = st.text_input(
-            "Folder backup",
-            value=str(bk.get("dir","data/_backup")),
-            key=K("t4","bk_dir")
-        )
-        bk_keep_ui = st.number_input(
-            "Max snapshot per file",
-            min_value=1, step=1,
-            value=int(bk.get("max_keep", 10)),
-            key=K("t4","bk_keep")
-        )
-
-        st.markdown("---")
-
-        # ---------- Hakim ----------
-        st.markdown("#### Hakim")
-        jab_regex = st.text_input(
-            "Regex jabatan yang dikecualikan dari auto-pick",
-            value=cfg["hakim"].get("exclude_jabatan_regex", r"\b(ketua|wakil)\b"),
-            help="Case-insensitive. Contoh: \\b(ketua|wakil)\\b"
-        )
-        show_cuti_default = st.toggle(
-            "Dropdown: tampilkan yang cuti (default)",
-            value=bool(cfg["hakim"].get("dropdown_show_cuti_default", False)),
-            key=K("t4","cutidef")
-        )
-        cool_days = st.number_input(
-            "Cooldown hari (0 = mati)",
-            min_value=0, step=1,
-            value=int(cfg["hakim"].get("cooldown_days", 0)),
-            key=K("t4","cooldays")
-        )
-        # Elastic + streak + ambang gap absolut
-        elastic_beta = st.number_input(
-            "Elastic β (0–1) untuk τ relatif",
-            min_value=0.0, max_value=1.0, step=0.05,
-            value=float(cfg["hakim"].get("elastic_beta", 0.20)),
-            help="τ = β × (Lmax − Lmin). Gap ≤ τ ⇒ pemenang masuk cooldown; gap > τ ⇒ tidak di-cooldown.",
-            key=K("t4","elastic_beta")
-        )
-        streak_cap = st.number_input(
-            "Batas beruntun per reset (per hari)",
-            min_value=1, step=1,
-            value=int(cfg["hakim"].get("elastic_streak_cap", 3)),
-            help="Jika hakim yang sama terpilih berturut-turut hingga batas ini, ia dipaksa cooldown sekali meski gap masih besar.",
-            key=K("t4","streak_cap")
-        )
-        min_gap_abs = st.number_input(
-            "Ambang gap absolut untuk cooldown (gap < N)",
-            min_value=0.0, step=0.1,
-            value=float(cfg["hakim"].get("elastic_min_gap_cool", 2.0)),
-            help="Jika (L2−L1) < N, pemenang langsung di-cooldown (di luar aturan τ).",
-            key=K("t4","abs_gap_cool"),
-        )
-
-        st.markdown("---")
-
-        # ---------- Beban ----------
-        st.markdown("#### Beban (rolling window)")
-        bcol0, bcol1, bcol2, bcol3 = st.columns(4)
-        use_decay_ui = bcol0.toggle(
-            "Gunakan peluruhan (half-life)?",
-            value=bool(bcfg.get("use_decay", True)),
-            key=K("t4","use_decay"),
-            help="Jika dimatikan: setiap perkara dalam window dihitung sama (uniform)."
-        )
-        win_days = bcol1.number_input(
-            "Window hari", min_value=1, step=1,
-            value=int(bcfg.get("window_days", 90)),
-            key=K("t4","win_days_cfg"),
-        )
-        half_life = bcol2.number_input(
-            "Half-life hari", min_value=1, step=1,
-            value=int(bcfg.get("half_life_days", 30)),
-            disabled=not use_decay_ui,
-            key=K("t4","half_life_cfg"),
-        )
-        min_w = bcol3.number_input(
-            "Min weight (0-1)", min_value=0.0, step=0.01,
-            value=float(bcfg.get("min_weight", 0.05)),
-            key=K("t4","min_weight_cfg"),
-        )
-
-        st.markdown("---")
-
-        # ---------- Tampilan ----------
-        st.markdown("#### Tampilan")
-        colA, colB = st.columns([1,1])
-        with colA:
-            loc = st.text_input("Locale tanggal", value=cfg["tampilan"].get("tanggal_locale","id-ID"))
-        with colB:
-            longfmt = st.toggle("Tanggal panjang (Senin, 01 Januari 2025)", value=bool(cfg["tampilan"].get("tanggal_long", True)))
-
-        # ===== Tombol SIMPAN harus di DALAM form =====
-        saved = st.form_submit_button("💾 Simpan Pengaturan", type="primary")
-
-    # =================== SETELAH SUBMIT: SIMPAN KE FILE ===================
-    if saved:
-        cfg.setdefault("beban", {})
-        cfg["beban"]["use_decay"] = bool(use_decay_ui)
-        cfg["beban"]["window_days"] = int(win_days)
-        cfg["beban"]["half_life_days"] = int(half_life)
-        cfg["beban"]["min_weight"] = float(min_w)
-
-        cfg["rotasi"]["mode"] = mode
-        cfg["rotasi"]["increment_on_save"] = bool(inc)
-        cfg["rotasi"]["order"] = [k0, k1, k2, k3]
-
-        cfg["hakim"]["exclude_jabatan_regex"] = jab_regex
-        cfg["hakim"]["dropdown_show_cuti_default"] = bool(show_cuti_default)
-        cfg["hakim"]["cooldown_days"] = int(cool_days)
-        cfg["hakim"]["elastic_beta"] = float(elastic_beta)
-        cfg["hakim"]["elastic_streak_cap"] = int(streak_cap)
-        cfg["hakim"]["elastic_min_gap_cool"] = float(min_gap_abs)
-
-        cfg.setdefault("backup", {})
-        cfg["backup"]["enabled"] = bool(bk_enabled_ui)
-        cfg["backup"]["dir"] = str(bk_dir_ui).strip() or "data/_backup"
-        cfg["backup"]["max_keep"] = int(bk_keep_ui)
-
-        cfg["tampilan"]["tanggal_locale"] = loc
-        cfg["tampilan"]["tanggal_long"] = bool(longfmt)
-
-        save_config(cfg)
-        st.success("Pengaturan disimpan.")
-        st.rerun()
-
-    # =================== DI LUAR FORM: LIST SNAPSHOT & PRUNE ===================
-    st.markdown("---")
-    st.markdown("#### Daftar Snapshot Backup")
-    tracked_files = [
-        ("Rekap", rekap_csv_path),
-        ("Config", CONFIG_PATH),
-        ("Rotasi/Cooldown", _RR_JSON),
-        ("JS Ghoib", DATA_DIR / "js_ghoib.csv"),
-    ]
-    with st.expander("Lihat daftar snapshot per berkas", expanded=False):
-        for label, p in tracked_files:
-            st.write(f"**{label}** — `{p.as_posix()}`")
-            if p.exists():
-                snaps = _backup_list(p)
-                total = len(snaps)
-                st.caption(f"{total} snapshot disimpan")
-                if total:
-                    rows = []
-                    for q in snaps[:10]:  # tampilkan 10 terbaru
+        st.markdown("#### Daftar Snapshot Backup")
+        tracked_files = [
+            ("Rekap", rekap_csv_path),
+            ("Config", CONFIG_PATH),
+            ("Rotasi/Cooldown", _RR_JSON),
+            ("JS Ghoib", DATA_DIR / "js_ghoib.csv"),
+        ]
+        with st.expander("Lihat daftar snapshot per berkas", expanded=False):
+            for label, p in tracked_files:
+                st.write(f"**{label}** — `{p.as_posix()}`")
+                if p.exists():
+                    snaps = _backup_list(p)
+                    total = len(snaps)
+                    st.caption(f"{total} snapshot disimpan")
+                    if total:
+                        rows = []
+                        for q in snaps[:10]:  # tampilkan 10 terbaru
+                            try:
+                                sz = q.stat().st_size
+                                mt = datetime.fromtimestamp(q.stat().st_mtime)
+                                rows.append({"Nama": q.name, "Waktu": mt.strftime("%Y-%m-%d %H:%M:%S"), "Ukuran": _human_size(sz)})
+                            except Exception:
+                                rows.append({"Nama": q.name, "Waktu": "-", "Ukuran": "-"})
+                        st.table(rows)
+                    if st.button(f"🧹 Prune >{cfg.get('backup',{}).get('max_keep',10)} snapshot ({label})", key=K("t4", f"bk_prune_{label}")):
                         try:
-                            sz = q.stat().st_size
-                            mt = datetime.fromtimestamp(q.stat().st_mtime)
-                            rows.append({"Nama": q.name, "Waktu": mt.strftime("%Y-%m-%d %H:%M:%S"), "Ukuran": _human_size(sz)})
-                        except Exception:
-                            rows.append({"Nama": q.name, "Waktu": "-", "Ukuran": "-"})
-                    st.table(rows)
-                if st.button(f"🧹 Prune >{cfg.get('backup',{}).get('max_keep',10)} snapshot ({label})", key=K("t4", f"bk_prune_{label}")):
-                    try:
-                        _backup_prune(p)
-                        st.success("Prune selesai.")
-                    except Exception as e:
-                        st.error(f"Gagal prune: {e}")
-            else:
-                st.info("File belum ada, belum ada snapshot.")
+                            _backup_prune(p)
+                            st.success("Prune selesai.")
+                        except Exception as e:
+                            st.error(f"Gagal prune: {e}")
+                else:
+                    st.info("File belum ada, belum ada snapshot.")
 
-    st.markdown("---")
-    st.markdown("#### Pemeliharaan")
-    cA, cB = st.columns([1,1])
-    with cA:
-        # Diagnostik mini
-        with st.expander("🧰 Diagnostik Data (opsional)"):
-            issues = []
-            need_hakim = ["nama"]
-            miss_hakim = [c for c in need_hakim if c not in hakim_df.columns]
-            if miss_hakim: issues.append(f"Hakim CSV kurang kolom: {miss_hakim}")
-            if not sk_df.empty and "ketua" in sk_df.columns and "nama" in hakim_df.columns:
-                sk_ketua = set(sk_df["ketua"].astype(str).map(str.strip))
-                master_nama = set(hakim_df["nama"].astype(str).map(str.strip))
-                missing = sorted([k for k in sk_ketua if k and k not in master_nama])
-                if missing:
-                    issues.append(f"Nama ketua di SK tidak ditemukan di hakim_df: {missing[:10]}{' ...' if len(missing)>10 else ''}")
-            st.write("Masalah terdeteksi:" if issues else "Tidak ditemukan masalah utama.")
-            for it in issues:
-                st.warning(it)
-    with cB:
-        # --- DEBUG KECIL: Bobot Hakim (window + decay) ---
-        with st.expander("🧮 Debug Bobot Hakim (window + decay)", expanded=False):
-            # parameter debug
-            colp = st.columns(5)
-            ref_date = colp[0].date_input("Referensi per (tgl)", value=date.today(), key=K("dbg","ref_date"))
-            window_days = colp[1].number_input("Window (hari)", min_value=7, max_value=365, value=90, step=1, key=K("dbg","win"))
-            half_life_days = colp[2].number_input("Half-life (hari)", min_value=5, max_value=180, value=30, step=1, key=K("dbg","hl"))
-            min_weight = colp[3].number_input("Min weight", min_value=0.0, max_value=1.0, value=0.05, step=0.01, key=K("dbg","minw"))
-            show_only_active = colp[4].toggle("Hanya hakim aktif", value=True, key=K("dbg","only_active"))
+        st.markdown("---")
+        st.markdown("#### Pemeliharaan")
+        cA, cB = st.columns([1,1])
+        with cA:
+            # Diagnostik mini
+            with st.expander("🧰 Diagnostik Data (opsional)"):
+                issues = []
+                need_hakim = ["nama"]
+                miss_hakim = [c for c in need_hakim if c not in hakim_df.columns]
+                if miss_hakim: issues.append(f"Hakim CSV kurang kolom: {miss_hakim}")
+                if not sk_df.empty and "ketua" in sk_df.columns and "nama" in hakim_df.columns:
+                    sk_ketua = set(sk_df["ketua"].astype(str).map(str.strip))
+                    master_nama = set(hakim_df["nama"].astype(str).map(str.strip))
+                    missing = sorted([k for k in sk_ketua if k and k not in master_nama])
+                    if missing:
+                        issues.append(f"Nama ketua di SK tidak ditemukan di hakim_df: {missing[:10]}{' ...' if len(missing)>10 else ''}")
+                st.write("Masalah terdeteksi:" if issues else "Tidak ditemukan masalah utama.")
+                for it in issues:
+                    st.warning(it)
+        with cB:
+            # --- DEBUG KECIL: Bobot Hakim (window + decay) ---
+            with st.expander("🧮 Debug Bobot Hakim (window + decay)", expanded=False):
+                # parameter debug
+                colp = st.columns(5)
+                ref_date = colp[0].date_input("Referensi per (tgl)", value=date.today(), key=K("dbg","ref_date"))
+                window_days = colp[1].number_input("Window (hari)", min_value=7, max_value=365, value=90, step=1, key=K("dbg","win"))
+                half_life_days = colp[2].number_input("Half-life (hari)", min_value=5, max_value=180, value=30, step=1, key=K("dbg","hl"))
+                min_weight = colp[3].number_input("Min weight", min_value=0.0, max_value=1.0, value=0.05, step=0.01, key=K("dbg","minw"))
+                show_only_active = colp[4].toggle("Hanya hakim aktif", value=True, key=K("dbg","only_active"))
 
-            # hitung bobot (kompatibel dgn versi lama/tanpa min_weight)
-            try:
-                wdict = _weighted_load_counts(
-                    rekap_df=rekap_df,
-                    now_date=ref_date,
-                    window_days=int(window_days),
-                    half_life_days=int(half_life_days),
-                    min_weight=float(min_weight),
-                )
-            except TypeError:
-                # kalau versi lama belum punya argumen min_weight
-                wdict = _weighted_load_counts(
-                    rekap_df=rekap_df,
-                    now_date=ref_date,
-                    window_days=int(window_days),
-                    half_life_days=int(half_life_days),
-                )
-
-            # siapkan basis daftar hakim yang akan ditampilkan
-            base_hakim = pd.DataFrame()
-            if isinstance(hakim_df, pd.DataFrame) and not hakim_df.empty and "nama" in hakim_df.columns:
-                base_hakim = hakim_df[["nama"]].copy()
-                base_hakim["nama"] = base_hakim["nama"].astype(str).str.strip()
-                base_hakim = base_hakim[~base_hakim["nama"].map(_is_header_like)]
-                if show_only_active and "aktif" in hakim_df.columns:
-                    base_hakim["_aktif__"] = hakim_df["aktif"].apply(_is_active_value)
-                    base_hakim = base_hakim[base_hakim["_aktif__"] == True]
-                base_hakim = base_hakim.drop_duplicates(subset=["nama"])
-            else:
-                # fallback: ambil dari rekap
-                if isinstance(rekap_df, pd.DataFrame) and not rekap_df.empty:
-                    base_hakim = pd.DataFrame({"nama": sorted(set(rekap_df["hakim"].astype(str).str.strip()))})
-
-            # hitung “last seen”, “cases in window”, “cuti hari ini”
-            if base_hakim.empty or rekap_df.empty:
-                st.info("Tidak ada data untuk dihitung.")
-            else:
-                r = rekap_df.copy()
-                r["tgl_register"] = pd.to_datetime(r["tgl_register"], errors="coerce")
-                r = r[r["tgl_register"].notna()]
-                ref_ts = pd.to_datetime(ref_date).normalize()
-                r["_age"] = (ref_ts - r["tgl_register"].dt.normalize()).dt.days.clip(lower=0)
-                r_win = r[r["_age"] <= int(window_days)]
-                win_counts = (
-                    r_win.assign(hakim_clean=r_win["hakim"].astype(str).str.strip())
-                        .groupby("hakim_clean").size().to_dict()
-                )
-
-                cuti_df_dbg = _load_cuti_df(_cuti_mtime())
-                today_pd = pd.to_datetime(date.today()).normalize()
-
-                base_hakim["bobot"] = base_hakim["nama"].map(lambda nm: float(wdict.get(nm.strip(), 0.0)))
-                base_hakim["cases_window"] = base_hakim["nama"].map(lambda nm: int(win_counts.get(nm.strip(), 0)))
-                base_hakim["last_seen_days"] = base_hakim["nama"].map(lambda nm: _last_seen_days_for(nm, rekap_df, ref_date))
-                base_hakim["cuti_hari_ini"] = base_hakim["nama"].map(lambda nm: _is_hakim_cuti(nm, today_pd, cuti_df_dbg))
-
-                # normalisasi share (opsional, biar kebayang proporsi)
-                total_w = base_hakim["bobot"].sum()
-                base_hakim["share_%"] = base_hakim["bobot"].map(lambda x: (x/total_w*100) if total_w>0 else 0.0)
-
-                # urut sesuai algoritma pemilihan: bobot kecil dulu, lalu yang paling lama belum dapat
-                show_df = base_hakim.sort_values(
-                    by=["bobot","last_seen_days","nama"],
-                    ascending=[True, False, True],
-                    kind="stable"
-                ).reset_index(drop=True)
-                show_df.index = show_df.index + 1  # 1-based rank
-
-                # tampilkan tabel
-                show_df = show_df.rename(columns={
-                    "nama": "Hakim",
-                    "bobot": "Bobot (window+decay)",
-                    "cases_window": "Kasus dlm window",
-                    "last_seen_days": "Last seen (hari)",
-                    "cuti_hari_ini": "Cuti hari ini?",
-                    "share_%": "Share %",
-                })
-                # pembulatan biar enak dilihat
-                show_df["Bobot (window+decay)"] = show_df["Bobot (window+decay)"].map(lambda v: round(float(v), 4))
-                show_df["Share %"] = show_df["Share %"].map(lambda v: round(float(v), 2))
-
-                st.dataframe(
-                    show_df[["Hakim","Bobot (window+decay)","Share %","Kasus dlm window","Last seen (hari)","Cuti hari ini?"]],
-                    width='stretch'
-                )
-
-                # grafik kecil
-                st.caption("Diagram bobot (semakin kecil → prioritas lebih tinggi).")
-                plot_df = show_df[["Hakim","Bobot (window+decay)"]].set_index("Hakim")
-                st.bar_chart(plot_df)
-                
-                
-            with st.expander("🧐 Kenapa auto-pick ketua kosong? (pipeline debug)", expanded=False):
+                # hitung bobot (kompatibel dgn versi lama/tanpa min_weight)
                 try:
-                    # salin pipeline auto-pick tapi tanpa return
-                    cfg = get_config()
-                    special_re = cfg.get("hakim", {}).get("exclude_jabatan_regex", r"\b(ketua|wakil)\b")
-                    libur_set_dbg = _libur_set_from_df(libur_df)
+                    wdict = _weighted_load_counts(
+                        rekap_df=rekap_df,
+                        now_date=ref_date,
+                        window_days=int(window_days),
+                        half_life_days=int(half_life_days),
+                        min_weight=float(min_weight),
+                    )
+                except TypeError:
+                    # kalau versi lama belum punya argumen min_weight
+                    wdict = _weighted_load_counts(
+                        rekap_df=rekap_df,
+                        now_date=ref_date,
+                        window_days=int(window_days),
+                        half_life_days=int(half_life_days),
+                    )
 
-                    # 0) awal
-                    dbg = hakim_df.copy()
-                    st.write("🟢 awal (hakim_df):", len(dbg))
+                # siapkan basis daftar hakim yang akan ditampilkan
+                base_hakim = pd.DataFrame()
+                if isinstance(hakim_df, pd.DataFrame) and not hakim_df.empty and "nama" in hakim_df.columns:
+                    base_hakim = hakim_df[["nama"]].copy()
+                    base_hakim["nama"] = base_hakim["nama"].astype(str).str.strip()
+                    base_hakim = base_hakim[~base_hakim["nama"].map(_is_header_like)]
+                    if show_only_active and "aktif" in hakim_df.columns:
+                        base_hakim["_aktif__"] = hakim_df["aktif"].apply(_is_active_value)
+                        base_hakim = base_hakim[base_hakim["_aktif__"] == True]
+                    base_hakim = base_hakim.drop_duplicates(subset=["nama"])
+                else:
+                    # fallback: ambil dari rekap
+                    if isinstance(rekap_df, pd.DataFrame) and not rekap_df.empty:
+                        base_hakim = pd.DataFrame({"nama": sorted(set(rekap_df["hakim"].astype(str).str.strip()))})
 
-                    # 1) aktif
-                    dbg["__aktif"] = dbg.get("aktif", 1).apply(_is_active_value)
-                    dbg = dbg[dbg["__aktif"] == True]
-                    st.write("✅ setelah filter aktif:", len(dbg))
+                # hitung “last seen”, “cases in window”, “cuti hari ini”
+                if base_hakim.empty or rekap_df.empty:
+                    st.info("Tidak ada data untuk dihitung.")
+                else:
+                    r = rekap_df.copy()
+                    r["tgl_register"] = pd.to_datetime(r["tgl_register"], errors="coerce")
+                    r = r[r["tgl_register"].notna()]
+                    ref_ts = pd.to_datetime(ref_date).normalize()
+                    r["_age"] = (ref_ts - r["tgl_register"].dt.normalize()).dt.days.clip(lower=0)
+                    r_win = r[r["_age"] <= int(window_days)]
+                    win_counts = (
+                        r_win.assign(hakim_clean=r_win["hakim"].astype(str).str.strip())
+                            .groupby("hakim_clean").size().to_dict()
+                    )
 
-                    # 2) exclude jabatan khusus
-                    jcol = next((c for c in _JBTN_COLS if c in dbg.columns), None)
-                    if jcol:
-                        mask_sp = dbg[jcol].astype(str).str.contains(special_re, case=False, regex=True, na=False)
-                        dbg = dbg[~mask_sp]
-                    st.write("✅ setelah exclude jabatan khusus:", len(dbg))
+                    cuti_df_dbg = _load_cuti_df(_cuti_mtime())
+                    today_pd = pd.to_datetime(date.today()).normalize()
 
-                    # 3) hitung rencana tanggal sidang
-                    def _rencana_tgl_sidang_dbg(nama_hakim: str):
-                        hnum = _hari_sidang_num_for(nama_hakim)
-                        if hnum == 0: return None
-                        base_d = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
-                        d = _compute_tgl_sidang(
-                            base=(base_d if isinstance(base_d, date) else base_d.date()),
-                            jenis=jenis,
-                            hari_sidang_num=hnum,
-                            libur_set=libur_set_for_filter,
-                            klasifikasi=klas_final,
+                    base_hakim["bobot"] = base_hakim["nama"].map(lambda nm: float(wdict.get(nm.strip(), 0.0)))
+                    base_hakim["cases_window"] = base_hakim["nama"].map(lambda nm: int(win_counts.get(nm.strip(), 0)))
+                    base_hakim["last_seen_days"] = base_hakim["nama"].map(lambda nm: _last_seen_days_for(nm, rekap_df, ref_date))
+                    base_hakim["cuti_hari_ini"] = base_hakim["nama"].map(lambda nm: _is_hakim_cuti(nm, today_pd, cuti_df_dbg))
+
+                    # normalisasi share (opsional, biar kebayang proporsi)
+                    total_w = base_hakim["bobot"].sum()
+                    base_hakim["share_%"] = base_hakim["bobot"].map(lambda x: (x/total_w*100) if total_w>0 else 0.0)
+
+                    # urut sesuai algoritma pemilihan: bobot kecil dulu, lalu yang paling lama belum dapat
+                    show_df = base_hakim.sort_values(
+                        by=["bobot","last_seen_days","nama"],
+                        ascending=[True, False, True],
+                        kind="stable"
+                    ).reset_index(drop=True)
+                    show_df.index = show_df.index + 1  # 1-based rank
+
+                    # tampilkan tabel
+                    show_df = show_df.rename(columns={
+                        "nama": "Hakim",
+                        "bobot": "Bobot (window+decay)",
+                        "cases_window": "Kasus dlm window",
+                        "last_seen_days": "Last seen (hari)",
+                        "cuti_hari_ini": "Cuti hari ini?",
+                        "share_%": "Share %",
+                    })
+                    # pembulatan biar enak dilihat
+                    show_df["Bobot (window+decay)"] = show_df["Bobot (window+decay)"].map(lambda v: round(float(v), 4))
+                    show_df["Share %"] = show_df["Share %"].map(lambda v: round(float(v), 2))
+
+                    st.dataframe(
+                        show_df[["Hakim","Bobot (window+decay)","Share %","Kasus dlm window","Last seen (hari)","Cuti hari ini?"]],
+                        width='stretch'
+                    )
+
+                    # grafik kecil
+                    st.caption("Diagram bobot (semakin kecil → prioritas lebih tinggi).")
+                    plot_df = show_df[["Hakim","Bobot (window+decay)"]].set_index("Hakim")
+                    st.bar_chart(plot_df)
+                    
+                    
+                with st.expander("🧐 Kenapa auto-pick ketua kosong? (pipeline debug)", expanded=False):
+                    try:
+                        # salin pipeline auto-pick tapi tanpa return
+                        cfg = get_config()
+                        special_re = cfg.get("hakim", {}).get("exclude_jabatan_regex", r"\b(ketua|wakil)\b")
+                        libur_set_dbg = _libur_set_from_df(libur_df)
+
+                        # 0) awal
+                        dbg = hakim_df.copy()
+                        st.write("🟢 awal (hakim_df):", len(dbg))
+
+                        # 1) aktif
+                        dbg["__aktif"] = dbg.get("aktif", 1).apply(_is_active_value)
+                        dbg = dbg[dbg["__aktif"] == True]
+                        st.write("✅ setelah filter aktif:", len(dbg))
+
+                        # 2) exclude jabatan khusus
+                        jcol = next((c for c in _JBTN_COLS if c in dbg.columns), None)
+                        if jcol:
+                            mask_sp = dbg[jcol].astype(str).str.contains(special_re, case=False, regex=True, na=False)
+                            dbg = dbg[~mask_sp]
+                        st.write("✅ setelah exclude jabatan khusus:", len(dbg))
+
+                        # 3) hitung rencana tanggal sidang
+                        def _rencana_tgl_sidang_dbg(nama_hakim: str):
+                            hnum = _hari_sidang_num_for(nama_hakim)
+                            if hnum == 0: return None
+                            base_d = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
+                            d = _compute_tgl_sidang(
+                                base=(base_d if isinstance(base_d, date) else base_d.date()),
+                                jenis=jenis,
+                                hari_sidang_num=hnum,
+                                libur_set=libur_set_for_filter,
+                                klasifikasi=klas_final,
+                            )
+
+                            return pd.to_datetime(d) if d else None
+
+                        dbg["__nama"] = dbg["nama"].astype(str).str.strip()
+                        dbg["__rencana"] = dbg["__nama"].map(_rencana_tgl_sidang_dbg)
+                        st.write("📅 punya rencana (not null):", int(dbg["__rencana"].notna().sum()))
+                        dbg = dbg[dbg["__rencana"].notna()]
+                        st.dataframe(dbg[["__nama","hari","__rencana"]].reset_index(drop=True))
+
+                        # 4) exclude cuti (hari ini & tgl rencana)
+                        cuti_df_dbg = _load_cuti_df(_cuti_mtime())
+                        if not cuti_df_dbg.empty:
+                            today_pd = pd.to_datetime(date.today()).normalize()
+                            dbg["_cuti_today"]   = dbg.apply(lambda r: _is_hakim_cuti(r["__nama"], today_pd, cuti_df_dbg), axis=1)
+                            dbg["_cuti_rencana"] = dbg.apply(lambda r: _is_hakim_cuti(r["__nama"], r["__rencana"], cuti_df_dbg), axis=1)
+                            st.write("🚫 cuti hari ini:", int(dbg["_cuti_today"].sum()),
+                                    "• cuti di tgl rencana:", int(dbg["_cuti_rencana"].sum()))
+                            dbg = dbg[~(dbg["_cuti_today"] | dbg["_cuti_rencana"])]
+                        st.write("✅ setelah exclude cuti:", len(dbg))
+                        st.dataframe(dbg[["__nama","__rencana"] + ([jcol] if jcol else [])])
+
+                        # 5) hitung beban (window+decay) dan last_seen
+                        now_for_load = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
+                        counts_dbg = _weighted_load_counts(
+                            rekap_df=rekap_df, now_date=now_for_load, window_days=90, half_life_days=30
+                        )
+                        dbg["__load"] = dbg["__nama"].map(lambda n: float(counts_dbg.get(n, 0.0)))
+                        dbg["__last_seen_days"] = dbg["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, now_for_load))
+                        st.write("📊 ringkas beban (top 10):")
+                        st.dataframe(
+                            dbg.sort_values(["__load","__last_seen_days","__nama"], ascending=[True, False, True])
+                            [["__nama","__load","__last_seen_days","__rencana"]]
+                            .head(10)
+                            .reset_index(drop=True)
                         )
 
-                        return pd.to_datetime(d) if d else None
+                        if len(dbg) == 0:
+                            st.error("❌ Kandidat kosong di tahap ini. Lihat angka-angka di atas untuk penyebabnya.")
+                        else:
+                            calon = dbg.sort_values(["__load","__last_seen_days","__nama"], ascending=[True, False, True]).iloc[0]["__nama"]
+                            st.success(f"✅ Seharusnya terpilih: **{calon}**")
+                    except Exception as e:
+                        st.warning(f"Debug gagal: {e}")
+        
+        # ============ MINI DEBUG: Elastic Cooldown (tanpa penalti lembut) ============
+        with st.expander("🧪 Debug Elastic Cooldown (tanpa penalti lembut)", expanded=False):
+            # default β (relatif) dari config hakim
+            beta_val_default = float(get_config().get("hakim", {}).get("elastic_beta", 0.20))
 
-                    dbg["__nama"] = dbg["nama"].astype(str).str.strip()
-                    dbg["__rencana"] = dbg["__nama"].map(_rencana_tgl_sidang_dbg)
-                    st.write("📅 punya rencana (not null):", int(dbg["__rencana"].notna().sum()))
-                    dbg = dbg[dbg["__rencana"].notna()]
-                    st.dataframe(dbg[["__nama","hari","__rencana"]].reset_index(drop=True))
+            # input kontrol baris 1
+            dbg_col  = st.columns([1.1, 1.1, 1.2, 1.0, 1.0, 1.0])
+            dbg_day  = dbg_col[0].date_input("Tanggal uji (tgl_register)", value=date.today(), key=K("dbg_elastic","day"))
+            dbg_jenis= dbg_col[1].selectbox("Jenis Perkara", ["Biasa","ISTBAT","GHOIB","ROGATORI","MAFQUD"], index=0, key=K("dbg_elastic","jenis"))
+            dbg_klas = dbg_col[2].text_input("Klasifikasi (opsional)", value="", key=K("dbg_elastic","klas"))
+            beta_val = dbg_col[3].number_input("β untuk τ relatif", min_value=0.0, max_value=1.0, value=beta_val_default, step=0.05, key=K("dbg_elastic","beta"))
+            apply_cd = dbg_col[4].toggle("Terapkan cooldown jika perlu", value=False, key=K("dbg_elastic","apply"))
+            do_reset = dbg_col[5].button("♻️ Reset semua cooldown", key=K("dbg_elastic","reset"))
 
-                    # 4) exclude cuti (hari ini & tgl rencana)
-                    cuti_df_dbg = _load_cuti_df(_cuti_mtime())
-                    if not cuti_df_dbg.empty:
-                        today_pd = pd.to_datetime(date.today()).normalize()
-                        dbg["_cuti_today"]   = dbg.apply(lambda r: _is_hakim_cuti(r["__nama"], today_pd, cuti_df_dbg), axis=1)
-                        dbg["_cuti_rencana"] = dbg.apply(lambda r: _is_hakim_cuti(r["__nama"], r["__rencana"], cuti_df_dbg), axis=1)
-                        st.write("🚫 cuti hari ini:", int(dbg["_cuti_today"].sum()),
-                                "• cuti di tgl rencana:", int(dbg["_cuti_rencana"].sum()))
-                        dbg = dbg[~(dbg["_cuti_today"] | dbg["_cuti_rencana"])]
-                    st.write("✅ setelah exclude cuti:", len(dbg))
-                    st.dataframe(dbg[["__nama","__rencana"] + ([jcol] if jcol else [])])
-
-                    # 5) hitung beban (window+decay) dan last_seen
-                    now_for_load = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
-                    counts_dbg = _weighted_load_counts(
-                        rekap_df=rekap_df, now_date=now_for_load, window_days=90, half_life_days=30
-                    )
-                    dbg["__load"] = dbg["__nama"].map(lambda n: float(counts_dbg.get(n, 0.0)))
-                    dbg["__last_seen_days"] = dbg["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, now_for_load))
-                    st.write("📊 ringkas beban (top 10):")
-                    st.dataframe(
-                        dbg.sort_values(["__load","__last_seen_days","__nama"], ascending=[True, False, True])
-                        [["__nama","__load","__last_seen_days","__rencana"]]
-                        .head(10)
-                        .reset_index(drop=True)
-                    )
-
-                    if len(dbg) == 0:
-                        st.error("❌ Kandidat kosong di tahap ini. Lihat angka-angka di atas untuk penyebabnya.")
-                    else:
-                        calon = dbg.sort_values(["__load","__last_seen_days","__nama"], ascending=[True, False, True]).iloc[0]["__nama"]
-                        st.success(f"✅ Seharusnya terpilih: **{calon}**")
-                except Exception as e:
-                    st.warning(f"Debug gagal: {e}")
-    
-    # ============ MINI DEBUG: Elastic Cooldown (tanpa penalti lembut) ============
-    with st.expander("🧪 Debug Elastic Cooldown (tanpa penalti lembut)", expanded=False):
-        # default β (relatif) dari config hakim
-        beta_val_default = float(get_config().get("hakim", {}).get("elastic_beta", 0.20))
-
-        # input kontrol baris 1
-        dbg_col  = st.columns([1.1, 1.1, 1.2, 1.0, 1.0, 1.0])
-        dbg_day  = dbg_col[0].date_input("Tanggal uji (tgl_register)", value=date.today(), key=K("dbg_elastic","day"))
-        dbg_jenis= dbg_col[1].selectbox("Jenis Perkara", ["Biasa","ISTBAT","GHOIB","ROGATORI","MAFQUD"], index=0, key=K("dbg_elastic","jenis"))
-        dbg_klas = dbg_col[2].text_input("Klasifikasi (opsional)", value="", key=K("dbg_elastic","klas"))
-        beta_val = dbg_col[3].number_input("β untuk τ relatif", min_value=0.0, max_value=1.0, value=beta_val_default, step=0.05, key=K("dbg_elastic","beta"))
-        apply_cd = dbg_col[4].toggle("Terapkan cooldown jika perlu", value=False, key=K("dbg_elastic","apply"))
-        do_reset = dbg_col[5].button("♻️ Reset semua cooldown", key=K("dbg_elastic","reset"))
-
-        if do_reset:
-            try:
-                _cool_reset_all()
-                st.success("Semua cooldown & streak dihapus.")
-            except Exception as e:
-                st.error(f"Gagal reset: {e}")
-
-        # input kontrol baris 2 — HANYA window (hari)
-        bcfg = get_config().get("beban", {}) or {}
-        colp = st.columns([1.2])
-        with colp[0]:
-            window_days = st.number_input(
-            "Window (hari)", min_value=7, max_value=365,
-            value=int(bcfg.get("window_days", 90)),
-            step=1,
-            key=K("dbg_elastic","win")   # ← was K("dbg","win")
-            )
-
-        # --- Konstruksi kandidat (mirror dari _pick_ketua_by_beban, versi ringkas) ---
-        def _kandidat_for_debug(now_d: date, jenis: str, klas: str) -> pd.DataFrame:
-            cfg = get_config()
-            libur_set_local = _libur_set_from_df(libur_df)
-            cuti_df_local = _load_cuti_df(_cuti_mtime())
-
-            if hakim_df is None or hakim_df.empty or "nama" not in hakim_df.columns:
-                return pd.DataFrame(columns=["__nama","__rencana"])
-
-            df = hakim_df.copy()
-            df["__aktif"] = df.get("aktif", 1).apply(_is_active_value)
-            df = df[df["__aktif"] == True]
-            if df.empty:
-                return pd.DataFrame(columns=["__nama","__rencana"])
-
-            # exclude jabatan khusus
-            jcol = next((c for c in _JBTN_COLS if c in df.columns), None)
-            if jcol:
-                special_re = cfg.get("hakim", {}).get("exclude_jabatan_regex", r"\b(ketua|wakil)\b")
+            if do_reset:
                 try:
-                    mask_spesial = df[jcol].astype(str).str.contains(special_re, case=False, regex=True, na=False)
-                except Exception:
-                    mask_spesial = df[jcol].astype(str).str.contains(r"\b(ketua|wakil)\b", case=False, regex=True, na=False)
-                df = df[~mask_spesial]
-            if df.empty:
-                return pd.DataFrame(columns=["__nama","__rencana"])
+                    _cool_reset_all()
+                    st.success("Semua cooldown & streak dihapus.")
+                except Exception as e:
+                    st.error(f"Gagal reset: {e}")
 
-            df["__nama"] = df["nama"].astype(str).map(str.strip)
-            df = df[~df["__nama"].map(_is_header_like)]
-            if df.empty:
-                return pd.DataFrame(columns=["__nama","__rencana"])
-
-            base_d = now_d if isinstance(now_d, (datetime, date)) else date.today()
-
-            def _calc_rencana(nama_hakim: str):
-                hnum = _hari_sidang_num_for(nama_hakim)
-                if hnum == 0:
-                    return None
-                d = _compute_tgl_sidang(
-                    base=(base_d if isinstance(base_d, date) else base_d.date()),
-                    jenis=dbg_jenis,
-                    hari_sidang_num=hnum,
-                    libur_set=_libur_set_from_df(libur_df),
-                    klasifikasi=dbg_klas,
+            # input kontrol baris 2 — HANYA window (hari)
+            bcfg = get_config().get("beban", {}) or {}
+            colp = st.columns([1.2])
+            with colp[0]:
+                window_days = st.number_input(
+                "Window (hari)", min_value=7, max_value=365,
+                value=int(bcfg.get("window_days", 90)),
+                step=1,
+                key=K("dbg_elastic","win")   # ← was K("dbg","win")
                 )
-                return pd.to_datetime(d) if d else None
 
-            df["__rencana"] = df["__nama"].map(_calc_rencana)
-            df = df[df["__rencana"].notna()]
-            if df.empty:
+            # --- Konstruksi kandidat (mirror dari _pick_ketua_by_beban, versi ringkas) ---
+            def _kandidat_for_debug(now_d: date, jenis: str, klas: str) -> pd.DataFrame:
+                cfg = get_config()
+                libur_set_local = _libur_set_from_df(libur_df)
+                cuti_df_local = _load_cuti_df(_cuti_mtime())
+
+                if hakim_df is None or hakim_df.empty or "nama" not in hakim_df.columns:
+                    return pd.DataFrame(columns=["__nama","__rencana"])
+
+                df = hakim_df.copy()
+                df["__aktif"] = df.get("aktif", 1).apply(_is_active_value)
+                df = df[df["__aktif"] == True]
+                if df.empty:
+                    return pd.DataFrame(columns=["__nama","__rencana"])
+
+                # exclude jabatan khusus
+                jcol = next((c for c in _JBTN_COLS if c in df.columns), None)
+                if jcol:
+                    special_re = cfg.get("hakim", {}).get("exclude_jabatan_regex", r"\b(ketua|wakil)\b")
+                    try:
+                        mask_spesial = df[jcol].astype(str).str.contains(special_re, case=False, regex=True, na=False)
+                    except Exception:
+                        mask_spesial = df[jcol].astype(str).str.contains(r"\b(ketua|wakil)\b", case=False, regex=True, na=False)
+                    df = df[~mask_spesial]
+                if df.empty:
+                    return pd.DataFrame(columns=["__nama","__rencana"])
+
+                df["__nama"] = df["nama"].astype(str).map(str.strip)
+                df = df[~df["__nama"].map(_is_header_like)]
+                if df.empty:
+                    return pd.DataFrame(columns=["__nama","__rencana"])
+
+                base_d = now_d if isinstance(now_d, (datetime, date)) else date.today()
+
+                def _calc_rencana(nama_hakim: str):
+                    hnum = _hari_sidang_num_for(nama_hakim)
+                    if hnum == 0:
+                        return None
+                    d = _compute_tgl_sidang(
+                        base=(base_d if isinstance(base_d, date) else base_d.date()),
+                        jenis=dbg_jenis,
+                        hari_sidang_num=hnum,
+                        libur_set=_libur_set_from_df(libur_df),
+                        klasifikasi=dbg_klas,
+                    )
+                    return pd.to_datetime(d) if d else None
+
+                df["__rencana"] = df["__nama"].map(_calc_rencana)
+                df = df[df["__rencana"].notna()]
+                if df.empty:
+                    return df
+
+                # exclude yang cuti (hari ini & pada tanggal rencana)
+                if not cuti_df_local.empty:
+                    today_pd = pd.to_datetime(date.today()).normalize()
+                    df = df[~df.apply(
+                        lambda r: (_is_hakim_cuti(r["__nama"], r["__rencana"], cuti_df_local) or
+                                _is_hakim_cuti(r["__nama"], today_pd, cuti_df_local)),
+                        axis=1
+                    )]
+
                 return df
 
-            # exclude yang cuti (hari ini & pada tanggal rencana)
-            if not cuti_df_local.empty:
-                today_pd = pd.to_datetime(date.today()).normalize()
-                df = df[~df.apply(
-                    lambda r: (_is_hakim_cuti(r["__nama"], r["__rencana"], cuti_df_local) or
-                            _is_hakim_cuti(r["__nama"], today_pd, cuti_df_local)),
-                    axis=1
-                )]
-
-            return df
-
-        cand = _kandidat_for_debug(dbg_day, dbg_jenis, dbg_klas)
-        if cand.empty:
-            st.info("Tidak ada kandidat (cek master hakim, hari sidang, libur/cuti).")
-        else:
-            cfg = get_config()
-            cd_days = int(cfg.get("hakim", {}).get("cooldown_days", 0) or 0)
-
-            def _under_cooldown(nm: str) -> bool:
-                if cd_days <= 0:
-                    return False
-                last = _cool_load_date(nm)
-                try:
-                    return (last is not None) and ((pd.to_datetime(dbg_day).date() - last).days < cd_days)
-                except Exception:
-                    return False
-
-            cand["_under_cd"] = cand["__nama"].map(_under_cooldown)
-            cand2 = cand[~cand["_under_cd"]].copy()
-
-            # simulasi reset jika semua under cooldown
-            if cand2.empty and cd_days > 0:
-                cand2 = cand.copy()
-                cand2["_under_cd"] = False
-
-            # --- Hitung beban + fairness (HANYA window di-override) ---
-            counts = _weighted_load_counts(
-                rekap_df=rekap_df,
-                now_date=dbg_day,
-                window_days=int(window_days),                      # <= dari kontrol debug
-                half_life_days=int(bcfg.get("half_life_days", 30)),# tetap ikut config
-                min_weight=float(bcfg.get("min_weight", 0.05)),    # tetap ikut config
-                use_decay=bool(bcfg.get("use_decay", True)),       # tetap ikut config
-            )
-            cand2["__load"] = cand2["__nama"].map(lambda n: float(counts.get(n, 0.0)))
-            cand2["__last_seen_days"] = cand2["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, dbg_day))
-
-            # urutan seperti runtime: load (kecil dulu), lalu lama tidak terpilih
-            cand2 = cand2.sort_values(by=["__load","__last_seen_days","__nama"], ascending=[True,False,True], kind="stable")
-            chosen = str(cand2.iloc[0]["__nama"]) if not cand2.empty else ""
-            loads_series = pd.Series(cand2["__load"].values, index=cand2["__nama"].values)
-
-            abs_gap_cfg = float(cfg.get("hakim", {}).get("elastic_min_gap_cool", 2.0))
-            need_cd = _elastic_should_cooldown(
-                chosen,
-                loads_series,
-                beta=float(beta_val),
-                abs_gap_cool=abs_gap_cfg,
-            ) if chosen else False
-
-            # label mode (dari config)
-            mode_txt = "decay (half-life)" if bool(bcfg.get("use_decay", True)) else "uniform (equal weights)"
-
-            # --- Ringkasan keputusan ---
-            st.markdown("**Ringkasan keputusan**")
-            if chosen:
-                s_sorted = loads_series.sort_values(ascending=True, kind="stable")
-                L1 = float(loads_series.loc[chosen])
-                L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
-                Lmin, Lmax = float(s_sorted.iloc[0]), float(s_sorted.iloc[-1])
-                gap = (L2 - L1) if pd.notna(L2) else float("nan")
-                tau = float(beta_val) * max(1e-9, (Lmax - Lmin))
-
-                st.write(f"- **Ketua terpilih (simulasi):** {chosen}  _(mode beban: {mode_txt}; window={int(window_days)} hari)_")
-                st.write(f"- **L1:** {L1:.4f} • **L2:** {L2:.4f} • **gap:** {gap:.4f}")
-                st.write(f"- **τ (beta×rentang):** {tau:.4f} (β={beta_val})")
-                st.write(f"- **Aturan gap absolut:** gap < {abs_gap_cfg:.2f} ⇒ cooldown")
-
-                if cand2.shape[0] == 1:
-                    st.info("Hanya 1 kandidat aktif ⇒ tidak di-cooldown.", icon="ℹ️")
-                elif pd.notna(gap) and gap < abs_gap_cfg:
-                    st.success("Keputusan: **MASUK cooldown** (karena gap < ambang absolut).")
-                elif need_cd:
-                    st.success("Keputusan: **MASUK cooldown** (gap ≤ τ).")
-                else:
-                    st.warning("Keputusan: **TIDAK di-cooldown** (gap > τ dan ≥ ambang absolut).")
+            cand = _kandidat_for_debug(dbg_day, dbg_jenis, dbg_klas)
+            if cand.empty:
+                st.info("Tidak ada kandidat (cek master hakim, hari sidang, libur/cuti).")
             else:
-                st.info("Tidak ada kandidat setelah filter.", icon="ℹ️")
+                cfg = get_config()
+                cd_days = int(cfg.get("hakim", {}).get("cooldown_days", 0) or 0)
 
-            # --- Tabel kandidat + yang under cooldown ---
-            st.markdown("---")
-            show = cand2[["__nama","__load","__last_seen_days"]].copy()
-            show = show.rename(columns={"__nama":"Hakim","__load":"Load","__last_seen_days":"Last seen (hari)"})
-            show["Under cooldown?"] = False
+                def _under_cooldown(nm: str) -> bool:
+                    if cd_days <= 0:
+                        return False
+                    last = _cool_load_date(nm)
+                    try:
+                        return (last is not None) and ((pd.to_datetime(dbg_day).date() - last).days < cd_days)
+                    except Exception:
+                        return False
 
-            if (cand["_under_cd"]).any():
-                ex = cand[cand["_under_cd"]][["__nama"]].copy()
-                ex["Load"] = ex["__nama"].map(lambda n: float(counts.get(n, 0.0)))
-                ex["Last seen (hari)"] = ex["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, dbg_day))
-                ex["Under cooldown?"] = True
-                ex = ex.rename(columns={"__nama":"Hakim"})
-                show = pd.concat([show, ex], ignore_index=True)
+                cand["_under_cd"] = cand["__nama"].map(_under_cooldown)
+                cand2 = cand[~cand["_under_cd"]].copy()
 
-            show["Chosen?"] = show["Hakim"].eq(chosen)
-            show = show.sort_values(by=["Under cooldown?","Chosen?","Load","Hakim"], ascending=[True,False,True,True], kind="stable")
-            st.dataframe(show, width='stretch', height=min(420, 52 + 28*len(show)))
+                # simulasi reset jika semua under cooldown
+                if cand2.empty and cd_days > 0:
+                    cand2 = cand.copy()
+                    cand2["_under_cd"] = False
 
-            # ringkas streak hari ini (kalau ada)
-            try:
-                obj = _rr_load() or {}
-                dkey = str(pd.to_datetime(dbg_day).normalize().date())
-                st_map = obj.get("streak", {}).get(dkey, {})
-                if st_map:
-                    st.caption(f"Streak hari ini: last={st_map.get('last','')}, count={st_map.get('count',0)}")
-            except Exception:
-                pass
+                # --- Hitung beban + fairness (HANYA window di-override) ---
+                counts = _weighted_load_counts(
+                    rekap_df=rekap_df,
+                    now_date=dbg_day,
+                    window_days=int(window_days),                      # <= dari kontrol debug
+                    half_life_days=int(bcfg.get("half_life_days", 30)),# tetap ikut config
+                    min_weight=float(bcfg.get("min_weight", 0.05)),    # tetap ikut config
+                    use_decay=bool(bcfg.get("use_decay", True)),       # tetap ikut config
+                )
+                cand2["__load"] = cand2["__nama"].map(lambda n: float(counts.get(n, 0.0)))
+                cand2["__last_seen_days"] = cand2["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, dbg_day))
 
-            # Tindakan tulis cooldown (opsional)
-            if apply_cd and chosen:
-                try:
-                    if need_cd:
-                        _cool_save_date(chosen, dbg_day)
-                        st.toast(f"Cooldown ditulis untuk: {chosen}", icon="✅")
+                # urutan seperti runtime: load (kecil dulu), lalu lama tidak terpilih
+                cand2 = cand2.sort_values(by=["__load","__last_seen_days","__nama"], ascending=[True,False,True], kind="stable")
+                chosen = str(cand2.iloc[0]["__nama"]) if not cand2.empty else ""
+                loads_series = pd.Series(cand2["__load"].values, index=cand2["__nama"].values)
+
+                abs_gap_cfg = float(cfg.get("hakim", {}).get("elastic_min_gap_cool", 2.0))
+                need_cd = _elastic_should_cooldown(
+                    chosen,
+                    loads_series,
+                    beta=float(beta_val),
+                    abs_gap_cool=abs_gap_cfg,
+                ) if chosen else False
+
+                # label mode (dari config)
+                mode_txt = "decay (half-life)" if bool(bcfg.get("use_decay", True)) else "uniform (equal weights)"
+
+                # --- Ringkasan keputusan ---
+                st.markdown("**Ringkasan keputusan**")
+                if chosen:
+                    s_sorted = loads_series.sort_values(ascending=True, kind="stable")
+                    L1 = float(loads_series.loc[chosen])
+                    L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
+                    Lmin, Lmax = float(s_sorted.iloc[0]), float(s_sorted.iloc[-1])
+                    gap = (L2 - L1) if pd.notna(L2) else float("nan")
+                    tau = float(beta_val) * max(1e-9, (Lmax - Lmin))
+
+                    st.write(f"- **Ketua terpilih (simulasi):** {chosen}  _(mode beban: {mode_txt}; window={int(window_days)} hari)_")
+                    st.write(f"- **L1:** {L1:.4f} • **L2:** {L2:.4f} • **gap:** {gap:.4f}")
+                    st.write(f"- **τ (beta×rentang):** {tau:.4f} (β={beta_val})")
+                    st.write(f"- **Aturan gap absolut:** gap < {abs_gap_cfg:.2f} ⇒ cooldown")
+
+                    if cand2.shape[0] == 1:
+                        st.info("Hanya 1 kandidat aktif ⇒ tidak di-cooldown.", icon="ℹ️")
+                    elif pd.notna(gap) and gap < abs_gap_cfg:
+                        st.success("Keputusan: **MASUK cooldown** (karena gap < ambang absolut).")
+                    elif need_cd:
+                        st.success("Keputusan: **MASUK cooldown** (gap ≤ τ).")
                     else:
-                        st.toast("Tidak menulis cooldown (gap > τ).", icon="ℹ️")
-                except Exception as e:
-                    st.error(f"Gagal menulis cooldown: {e}")
-                    
-    with st.expander("🧾 Audit terakhir", expanded=False):
-        aud = _read_csv(Path(AUDIT_LOG_CSV))
-        if aud.empty:
-            st.caption("Belum ada audit.")
-        else:
-            aud_show = aud.copy()
-            aud_show = aud_show.sort_values("ts", ascending=False).head(50)
-            st.dataframe(aud_show, use_container_width=True)
-            st.download_button("⬇️ Unduh audit_log.csv", data=aud.to_csv(index=False).encode("utf-8-sig"),
-                            file_name="audit_log.csv", mime="text/csv")
+                        st.warning("Keputusan: **TIDAK di-cooldown** (gap > τ dan ≥ ambang absolut).")
+                else:
+                    st.info("Tidak ada kandidat setelah filter.", icon="ℹ️")
+
+                # --- Tabel kandidat + yang under cooldown ---
+                st.markdown("---")
+                show = cand2[["__nama","__load","__last_seen_days"]].copy()
+                show = show.rename(columns={"__nama":"Hakim","__load":"Load","__last_seen_days":"Last seen (hari)"})
+                show["Under cooldown?"] = False
+
+                if (cand["_under_cd"]).any():
+                    ex = cand[cand["_under_cd"]][["__nama"]].copy()
+                    ex["Load"] = ex["__nama"].map(lambda n: float(counts.get(n, 0.0)))
+                    ex["Last seen (hari)"] = ex["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, dbg_day))
+                    ex["Under cooldown?"] = True
+                    ex = ex.rename(columns={"__nama":"Hakim"})
+                    show = pd.concat([show, ex], ignore_index=True)
+
+                show["Chosen?"] = show["Hakim"].eq(chosen)
+                show = show.sort_values(by=["Under cooldown?","Chosen?","Load","Hakim"], ascending=[True,False,True,True], kind="stable")
+                st.dataframe(show, width='stretch', height=min(420, 52 + 28*len(show)))
+
+                # ringkas streak hari ini (kalau ada)
+                try:
+                    obj = _rr_load() or {}
+                    dkey = str(pd.to_datetime(dbg_day).normalize().date())
+                    st_map = obj.get("streak", {}).get(dkey, {})
+                    if st_map:
+                        st.caption(f"Streak hari ini: last={st_map.get('last','')}, count={st_map.get('count',0)}")
+                except Exception:
+                    pass
+
+                # Tindakan tulis cooldown (opsional)
+                if apply_cd and chosen:
+                    try:
+                        if need_cd:
+                            _cool_save_date(chosen, dbg_day)
+                            st.toast(f"Cooldown ditulis untuk: {chosen}", icon="✅")
+                        else:
+                            st.toast("Tidak menulis cooldown (gap > τ).", icon="ℹ️")
+                    except Exception as e:
+                        st.error(f"Gagal menulis cooldown: {e}")
+                        
+        with st.expander("🧾 Audit terakhir", expanded=False):
+            aud = _read_csv(Path(AUDIT_LOG_CSV))
+            if aud.empty:
+                st.caption("Belum ada audit.")
+            else:
+                aud_show = aud.copy()
+                aud_show = aud_show.sort_values("ts", ascending=False).head(50)
+                st.dataframe(aud_show, use_container_width=True)
+                st.download_button("⬇️ Unduh audit_log.csv", data=aud.to_csv(index=False).encode("utf-8-sig"),
+                                file_name="audit_log.csv", mime="text/csv")
 
     st.markdown("---")
     st.caption(f"📁 Lokasi config: `{CONFIG_PATH.as_posix()}`")

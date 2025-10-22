@@ -8,6 +8,7 @@ from pathlib import Path
 import calendar
 import pandas as pd
 import streamlit as st
+from app_core.login import _ensure_auth  
 
 # ===== UI helper optional =====
 try:

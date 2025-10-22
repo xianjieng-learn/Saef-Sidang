@@ -8,7 +8,7 @@ import io
 import math
 from pathlib import Path
 from typing import Optional, Dict
-
+from app_core.login import _ensure_auth  
 import pandas as pd
 import streamlit as st
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import io, re, math
 from pathlib import Path
 from typing import Tuple, Dict, Set, Optional
-
+from app_core.login import _ensure_auth  
 import pandas as pd
 import streamlit as st
 

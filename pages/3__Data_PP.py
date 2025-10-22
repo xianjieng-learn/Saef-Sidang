@@ -4,7 +4,7 @@ import re
 import math
 from pathlib import Path
 from typing import List, Tuple
-
+from app_core.login import _ensure_auth  
 import pandas as pd
 import streamlit as st
 
