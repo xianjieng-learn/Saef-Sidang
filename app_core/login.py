@@ -66,3 +66,28 @@ def ensure_auth_and_topbar(require_admin: bool = False, show_user: bool = True):
             for k in ("auth_user","auth_role","auth_exp","_redirecting"):
                 st.session_state.pop(k, None)
             st.rerun()
+# app_core/roles.py
+import streamlit as st
+from contextlib import contextmanager
+
+def is_admin() -> bool:
+    return st.session_state.get("auth_role") == "admin"
+
+def show_if_admin() -> bool:
+    """Return True kalau admin; False kalau bukan (tanpa menghentikan halaman)."""
+    return is_admin()
+
+def gate_admin(stop: bool = True):
+    """Blokir seluruh section bila bukan admin."""
+    if not is_admin():
+        st.warning("Bagian ini khusus **admin**.")
+        if stop:
+            st.stop()
+
+@contextmanager
+def admin_section(message: str = "Bagian ini khusus admin."):
+    """Context manager: render isi hanya untuk admin."""
+    if is_admin():
+        yield
+    else:
+        st.info(message)

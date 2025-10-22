@@ -20,7 +20,7 @@ from app_core.nav import render_top_nav
 render_top_nav()  # auto deteksi halaman aktif
 st.set_page_config(page_title="📥 Input & Hasil", page_icon="📥", layout="wide", initial_sidebar_state="collapsed")
 st.header("Input & Hasil")
-
+is_admin = st.session_state.get("auth_role") == "admin"
 # ============================================================
 # ========== [INTERNAL HELPERS — SINGLE-FILE VERSION] ========
 # ============================================================
@@ -1232,8 +1232,21 @@ def _consume_pair_on_save_once(ketua: str, sk_row: pd.Series, jenis: str, rekap_
     if str(js).strip().lower() in {"js","js1","js2"}: js = ""
     return pp, js
 
-# ================== TABS ================================
-tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Rekap", "🧪 Debug JS Ghoib", "⚙️ Pengaturan"])
+is_admin = str(st.session_state.get("auth_role", "")).lower() == "admin"
+
+# ---- Susun daftar tab (Pengaturan hanya untuk admin)
+labels = ["📝 Input", "📊 Rekap", "🧪 Debug JS Ghoib"]
+if is_admin:
+    labels.append("⚙️ Pengaturan")
+
+tabs = st.tabs(labels)
+
+# ---- Unpack tabs sesuai jumlahnya
+if is_admin:
+    tab1, tab2, tab3, tab4 = tabs
+else:
+    tab1, tab2, tab3 = tabs
+    tab4 = None  # tidak ada tab Pengaturan untuk non-admin
 
 # ------------------ TAB 1: INPUT ------------------------
 with tab1:
@@ -1998,9 +2011,7 @@ with tab2:
     else:
         st.info("Belum ada data rekap (data/rekap.csv kosong).")
 
-is_admin = st.session_state.get("auth_role") == "admin"
-if is_admin:
-    # ------------------ TAB 3: DEBUG JS GHOIB ----------------
+# ------------------ TAB 3: DEBUG JS GHOIB ----------------
     with tab3:
         st.subheader("🧪 Debug Pemilihan & Beban JS Ghoib")
 
@@ -2041,9 +2052,8 @@ if is_admin:
                                 st.success("Beban di-set 0"); st.rerun()
             with c4:
                 if st.button("🔄 Refresh", width='stretch', key=K("t3","refresh")):
-                    st.rerun()
+                    st.rerun()    
 
-is_admin = st.session_state.get("auth_role") == "admin"
 if is_admin:
 # ------------------ TAB 4: PENGATURAN -------------------
     with tab4:

@@ -4,6 +4,7 @@ import inspect
 from pathlib import Path
 from datetime import datetime, timedelta
 import streamlit as st
+from app_core.login import is_admin
 
 SESSION_TTL_HOURS = 1
 
