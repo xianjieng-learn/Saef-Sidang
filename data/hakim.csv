@@ -1,0 +1,13 @@
+nama,hari_sidang,aktif,max_per_hari,catatan
+"Drs. Ifdal,S.H.",Kamis,YA,0,None
+"Drs. H. Syakhrani",Kamis,YA,0,None
+"Dr. H. Abdul Majid,S.HI.,M.H.",Kamis,TIDAK,0,None
+"Drs. Agus Abdullah,M.H.",Rabu,YA,0,None
+"Suryadi,S.Ag.,S.H., M.H.",Rabu,TIDAK,0,None
+"Dra. Mulathifah, M.H.",Rabu,YA,0,None
+"Ahmad Bisri,S.H., M.H.",Selasa,TIDAK,0,None
+"Dra. Taslimah,M.H",Selasa,YA,0,None
+"Drs. Zaenal Murhofa,S.H.. M.H",Selasa,YA,0,None
+"Idawati,S.Ag.,M.H.",Senin,YA,0,None
+"Drs. Jajat Sudrajat,S.H., M.H",Senin,YA,0,None
+"Drs. Sohel,S.H.",Senin,YA,2,Sakit

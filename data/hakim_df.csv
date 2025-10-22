@@ -1,0 +1,12 @@
+﻿id,nama,hari,aktif,max_per_hari,alias,jabatan,catatan
+2,"Suryadi, S.Ag., S.H., M.H.",Rabu,0,0,Ketua,Ketua,nan
+3,"Dr. H. Abdul Majid, S.H.I., M.H.",Kamis,1,0,Wakil,Wakil,nan
+4,"Drs. Zaenal Musthofa, S.H., M.H",Selasa,0,0,nan,nan,nan
+5,"Drs. Ifdal, S.H.",Kamis,1,0,nan,nan,nan
+6,Drs. H. Syakhrani,Kamis,1,0,nan,nan,nan
+7,"Drs. Jajat Sudrajat, S.H., M.H",Senin,1,0,Jajat,nan,nan
+8,"Drs. Sohel,S.H.",Senin,1,2,nan,Ketua,nan
+9,"Dra. Taslimah, M.H.",Selasa,1,0,nan,nan,nan
+10,"Dra. Mulathifah, M.H.",Rabu,1,0,Mulatifah,nan,nan
+11,"Drs. Agus Abdullah, M.H.",Rabu,1,0,nan,nan,nan
+13,"Idawati, S.Ag., M.H.",Senin,1,0,Ida,nan,nan

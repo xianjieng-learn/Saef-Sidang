@@ -1,0 +1,12 @@
+﻿id,majelis,hari,ketua,anggota1,anggota2,pp1,pp2,js1,js2,aktif,catatan
+1,Majelis Ruang Sidang 1 / Senin - Sohel,Senin,"Drs. Sohel,S.H.","Drs. Ifdal,S.H.","Dra. Taslimah,M.H","Sujiati, S.H.,M.H.","Sirajuddin Haris, S.H.",Umi Nurulia,Umi Nurulia,YA,
+2,Majelis Ruang Sidang 2 / Senin - Jajat,Senin,"Drs. Jajat Sudrajat, S.H., M.H",Drs. H. Syakhrani,"Drs. Agus Abdullah, M.H.","Noni Salmy, S.HI.","Widya Fausiah, S.E., M.H.",Aji Djuanda Rachmad,"Evi Setyowati, S.Sos.",YA,
+3,Majelis Ruang Sidang 3 / Senin - Ida,Senin,"Idawati,S.Ag.,M.H.","Drs. Zaenal Murhofa,S.H.. M.H","Dra. Mulathifah, M.H.","Budi Setyorini, S.H","Andar Aryani, S.H.,M.H.",Raden Yadi Sumiadi,Raden Yadi Sumiadi,YA,
+4,Majelis Ruang Sidang 1 / Selasa - Zaenal,Selasa,"Drs. Zaenal Murhofa, S.H.. M.H","Drs. Jajat Sudrajat, S.H., M.H","Dra. Mulathifah, M.H.","Nengceu Siti Rohmah, S.H.I.","Hj. Alfiah Yuliastuti, S.H., M.H.",Sanjaya Langgeng Santoso,Sanjaya Langgeng Santoso,TIDAK,
+5,Majelis Ruang Sidang 2 / Selasa - Taslimah,Selasa,"Dra. Taslimah, M.H.","Drs. Agus Abdullah, M.H.","Idawati, S.Ag., M.H.","Muhammad Thahir Guhir, S.H.,M.H.","Inayatus Salisya, S.H.,M.H.","Sehudin, S.H.","Sehudin, S.H.",YA,
+7,Majelis Ruang Sidang 1 / Rabu - Ketua,Rabu,"Suryadi, S.Ag., S.H., M.H.","Drs. Ifdal, S.H.","Dra. Taslimah, M.H.","Muhammad Iqbal, S.Ag., S.H., M.H.","Hisni Mubarok, SHI","Irvan Riditya Fauzi, A.Md","Irvan Riditya Fauzi, A.Md",TIDAK,
+8,Majelis Ruang Sidang 2 / Rabu - Mulathifah,Rabu,"Dra. Mulathifah, M.H.","Drs. Sohel, S.H.","Idawati, S.Ag., M.H.","Imron Rosyidi, S.H.","Nur Holia, S.H., M.H.","Rina Marlina, SE",Sabar Kuswanto,YA,
+9,Majelis Ruang Sidang 3 / Rabu - Agus,Rabu,"Drs. Agus Abdullah,M.H.",Drs. H. Syakhrani,"Drs. Jajat Sudrajat,S.H., M.H","Mochamad Taufik, S.Ag","Neneng Kurniati, S.Ag.","Monika Septi Indriyani, A.Md., S.H.",Ismail,YA,
+10,Majelis Ruang Sidang 1 / Kamis - Wakil,Kamis,"Dr. H. Abdul Majid, S.H.I., M.H.","Dra. Mulathifah, M.H","Drs. Agus Abdullah, M.H","Runie Handayani, S.H., M.H.","Ikbal Basri, S.H., M.H.","Sri Maryati, A.Md","Sri Maryati, A.Md",YA,
+11,Majelis Ruang Sidang 2 / Kamis - Ifdal,Kamis,"Drs. Ifdal, S.H.","Drs. Sohel, S.H.","Dra. Taslimah, M.H.","Endang Bahtiar, S.H., M.H.","Zamzam Lubis, S.H., M.H.",Zainal Arifin,"Ombang Hasyim Ashari, S.Ag.",YA,
+12,Majelis Ruang Sidang 3 / Kamis - Syakhrani,Kamis,Drs. H. Syakhrani,"Drs. Zaenal Musthofa, S.H., M.H","Idawati, S.Ag., M.H.","Sri Mulyati, S.Ag., M.H.","Muhammad Syaifur Rohim, S.E.I.","Khairunas, S.H.I.","Khairunas, S.H.I.",YA,

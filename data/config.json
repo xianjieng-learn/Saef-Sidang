@@ -1,0 +1,30 @@
+{
+  "rotasi": {
+    "mode": "pair4",
+    "order": [
+      "P1J1",
+      "P2J1",
+      "P1J2",
+      "P2J2"
+    ],
+    "increment_on_save": true
+  },
+  "hakim": {
+    "exclude_jabatan_regex": "\\b(ketua|wakil)\\b",
+    "dropdown_show_cuti_default": false,
+    "cooldown_days": 1,
+    "elastic_beta": 0.10000000000000002,
+    "elastic_streak_cap": 2,
+    "elastic_min_gap_cool": 2.1
+  },
+  "tampilan": {
+    "tanggal_locale": "id-ID",
+    "tanggal_long": true
+  },
+  "beban": {
+    "window_days": 90,
+    "half_life_days": 30,
+    "min_weight": 0.05,
+    "use_decay": false
+  }
+}

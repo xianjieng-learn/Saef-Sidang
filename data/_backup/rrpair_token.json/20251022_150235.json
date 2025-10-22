@@ -1,0 +1,141 @@
+{
+  "rrpair::per_ketua::mulathifah": {
+    "idx": 1,
+    "meta": {
+      "ketua": "Dra. Mulathifah, M.H.",
+      "combos_len": 4,
+      "last_used_combo": {
+        "pp": "Imron Rosyidi, S.H.",
+        "js": "Rina Marlina, SE"
+      }
+    }
+  },
+  "rrpair::per_ketua::agus-abdullah": {
+    "idx": 1,
+    "meta": {
+      "ketua": "Drs. Agus Abdullah, M.H.",
+      "combos_len": 4,
+      "last_used_combo": {
+        "pp": "Mochamad Taufik, S.Ag",
+        "js": "Khairunas, S.H.I."
+      }
+    }
+  },
+  "rrpair::per_ketua::ifdal": {
+    "idx": 2,
+    "meta": {
+      "ketua": "Drs. Ifdal, S.H.",
+      "combos_len": 4,
+      "last_used_combo": {
+        "pp": "Zamzam Lubis, S.H., M.H.",
+        "js": "Zainal Arifin"
+      }
+    }
+  },
+  "rrpair::per_ketua::syakhrani": {
+    "idx": 0,
+    "meta": {
+      "ketua": "Drs. H. Syakhrani",
+      "combos_len": 2,
+      "last_used_combo": {
+        "pp": "Muhammad Syaifur Rohim, S.E.I.",
+        "js": "Khairunas, S.H.I."
+      }
+    }
+  },
+  "rrpair::per_ketua::jajat-sudrajat": {
+    "idx": 1,
+    "meta": {
+      "ketua": "Drs. Jajat Sudrajat, S.H., M.H",
+      "combos_len": 4,
+      "last_used_combo": {
+        "pp": "Noni Salmy, S.HI.",
+        "js": "Ismail"
+      }
+    }
+  },
+  "rrpair::per_ketua::idawati-ag": {
+    "idx": 0,
+    "meta": {
+      "ketua": "Idawati, S.Ag., M.H.",
+      "combos_len": 2,
+      "last_used_combo": {
+        "pp": "Andar Aryani, S.H.,M.H.",
+        "js": "Raden Yadi Sumiadi"
+      }
+    }
+  },
+  "rrpair::per_ketua::zaenal-murhofa": {
+    "idx": 2,
+    "meta": {
+      "ketua": "Drs. Zaenal Murhofa, S.H.. M.H",
+      "combos_len": 4,
+      "last_used_combo": {
+        "pp": "Hj. Alfiah Yuliastuti, S.H., M.H",
+        "js": "Sanjaya Langgeng Santoso"
+      }
+    }
+  },
+  "rrpair::per_ketua::taslimah": {
+    "idx": 0,
+    "meta": {
+      "ketua": "Dra. Taslimah, M.H.",
+      "combos_len": 2,
+      "last_used_combo": {
+        "pp": "Inayatus Salisya, S.H.,M.H.",
+        "js": "Sehudin, S.H."
+      }
+    }
+  },
+  "rrpair::per_ketua::suryadi-ag": {
+    "idx": 0,
+    "meta": {
+      "ketua": "Suryadi, S.Ag., S.H., M.H.",
+      "combos_len": 2,
+      "last_used_combo": {
+        "pp": "Andar Aryani, S.H.,M.H.",
+        "js": "Raden Yadi Sumiadi"
+      }
+    }
+  },
+  "rrpair::per_ketua::abdul-majid": {
+    "idx": 2,
+    "meta": {
+      "ketua": "Dr. H. Abdul Majid, S.HI., M.H.",
+      "combos_len": 4,
+      "last_used_combo": {
+        "pp": "Ikbal Basri, S.H., M.H.",
+        "js": "Sri Maryati, A.Md"
+      }
+    }
+  },
+  "rrpair::per_ketua::sohel": {
+    "idx": 1,
+    "meta": {
+      "ketua": "Drs. Sohel,S.H.",
+      "combos_len": 2,
+      "last_used_combo": {
+        "pp": "Sujiati, S.H.,M.H.",
+        "js": "Umi Nurulia"
+      }
+    }
+  },
+  "streak": {
+    "2025-10-22": {
+      "last": "Drs. Ifdal, S.H.",
+      "count": 1
+    }
+  },
+  "cooldown::mulathifah": {
+    "last_pick": "2025-10-22"
+  },
+  "cooldown::idawati ag": {
+    "last_pick": "2025-10-22"
+  },
+  "cooldown::sohel": {
+    "last_pick": "2025-10-22"
+  },
+  "cooldown::taslimah": {
+    "last_pick": "2025-10-22"
+  }
+}
