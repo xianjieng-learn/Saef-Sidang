@@ -1,0 +1,13 @@
+nama,hari_sidang,aktif,max_per_hari,catatan,pasangan1,pasangan2
+Ifdal,Kamis,YA,0,None,Sohel,Bisri
+Syakhrani,Kamis,YA,0,None,None,None
+Wakil,Kamis,TIDAK,0,None,None,None
+Agus,Rabu,YA,0,None,None,None
+Ketua,Rabu,TIDAK,0,None,None,None
+Mulatifah,Rabu,YA,0,None,None,None
+Bisri,Selasa,YA,0,None,None,None
+Taslimah,Selasa,YA,0,None,None,None
+Zaenal,Selasa,YA,0,None,None,None
+Ida,Senin,YA,0,None,Mulatifah,Bisri
+Jajat,Senin,YA,0,None,Syakhrani,Agus
+Drs. Sohel, S.H.,Senin,YA,2,Ifdal,Taslimah

@@ -1,0 +1,55 @@
+from pathlib import Path
+from platformdirs import user_data_dir
+import sqlite3
+
+APP_DIR = Path(user_data_dir("SAEF-Sidang", "YourOrg"))
+APP_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = APP_DIR / "saef.db"
+
+def get_conn():
+    con = sqlite3.connect(
+        DB_PATH,
+        detect_types=sqlite3.PARSE_DECLTYPES,
+        check_same_thread=False,
+    )
+    # Tuning aman untuk app
+    con.execute("PRAGMA journal_mode=WAL;")
+    con.execute("PRAGMA foreign_keys=ON;")
+    con.execute("PRAGMA synchronous=NORMAL;")
+    return con
+
+def init_db():
+    con = get_conn()
+    cur = con.cursor()
+    cur.executescript("""
+    CREATE TABLE IF NOT EXISTS hakim (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT NOT NULL UNIQUE,
+        hari TEXT,
+        aktif INTEGER DEFAULT 1,
+        max_per_hari INTEGER,
+        catatan TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS pp (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT NOT NULL UNIQUE,
+        aktif INTEGER DEFAULT 1,
+        catatan TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS js (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT NOT NULL UNIQUE,
+        aktif INTEGER DEFAULT 1,
+        catatan TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS js_ghoib (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT NOT NULL UNIQUE,
+        total_ghoib INTEGER DEFAULT 0
+    );
+    """)
+    con.commit()
+    con.close()

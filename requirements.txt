@@ -1,0 +1,20 @@
+# Core app framework
+streamlit>=1.36
+
+# Data wrangling
+pandas>=2.2
+numpy>=2.1
+
+# PDF generation for Batch Instrument
+reportlab>=4.0
+pillow>=10.2
+
+# Excel export utilities (to_excel_bytes)
+openpyxl>=3.1
+XlsxWriter>=3.2
+
+# Misc utilities used in db.py (user_data_dir)
+platformdirs>=4.2
+
+# Optional but recommended (faster Parquet/Arrow I/O)
+pyarrow>=15
