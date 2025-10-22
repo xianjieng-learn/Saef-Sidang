@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import date, datetime
 from io import BytesIO
 from xml.sax.saxutils import escape as html_escape
-from app_core.login import _ensure_auth  
+from app_core.login import _ensure_auth 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -12,11 +12,12 @@ from reportlab.platypus import (
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
-
+from app_core.nav import render_top_nav
+render_top_nav()  # tampilkan top bar
 from app_core.data_io import load_all
 from app_core.helpers import format_tanggal_id
 
-st.set_page_config(page_title="Batch Instrument (Table PDF)", layout="wide")
+st.set_page_config(page_title="Batch Instrument (Table PDF)", layout="wide", initial_sidebar_state="collapsed")
 st.header("🧰 Batch Instrument – Tabel PDF (Group by JS/PP/Hakim)")
 
 # ===== Load =====

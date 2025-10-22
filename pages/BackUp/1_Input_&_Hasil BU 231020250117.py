@@ -39,17 +39,6 @@ BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 AUDIT_LOG_CSV = DATA_DIR / "audit_log.csv"
 
 _ensure_auth()
-
-def _window_days_last_prev_to_today(now_d) -> int:
-    """Hitung jumlah hari dari 'hari terakhir bulan sebelumnya' s.d. hari ini (inklusif)."""
-    if isinstance(now_d, datetime):
-        now_d = now_d.date()
-    elif not isinstance(now_d, date):
-        now_d = date.today()
-    first_of_month = date(now_d.year, now_d.month, 1)
-    last_prev = first_of_month - timedelta(days=1)   # hari terakhir bulan sebelumnya
-    return max(1, (now_d - last_prev).days)          # inklusif last_prev → today
-
 # ========== BACKUP HELPERS ==========
 def _backup_enabled() -> bool:
     try:
@@ -1050,15 +1039,13 @@ def _pick_ketua_by_beban(
     if df.empty:
         return "", None
 
-    
     # beban berbobot
     now_for_load = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
-    dyn_window = _window_days_last_prev_to_today(now_for_load)
     bcfg = cfg.get("beban", {})
     counts = _weighted_load_counts(
         rekap_df=rekap_df,
         now_date=now_for_load,
-        window_days=int(dyn_window), 
+        window_days=int(bcfg.get("window_days", 90)),
         half_life_days=int(bcfg.get("half_life_days", 30)),
         min_weight=float(bcfg.get("min_weight", 0.05)),
         use_decay=bool(bcfg.get("use_decay", True)),
@@ -1110,15 +1097,75 @@ def _pick_ketua_by_beban(
     # opsional: rapikan batas bawah untuk semua baris
     df["__load"] = df["__load"].clip(lower=0.0)
 
-    df = df[~df["__nama"].map(_cool_v2_is_active)]
-    non_cd_count = int(len(df))  # dipakai buat _elastic_ctx di bawah
+    # ===== Hard-exclude cooldown (+ reset jika habis) =====
+    cd_days = int(cfg.get("hakim", {}).get("cooldown_days", 0) or 0)
+
+    def _under_cooldown(nm: str) -> bool:
+        if cd_days <= 0:
+            return False
+        last = _cool_load_date(nm)
+        try:
+            return (last is not None) and ((pd.to_datetime(now_for_load).date() - last).days < cd_days)
+        except Exception:
+            return False
+
+    df = df[~df["__nama"].map(_under_cooldown)]
+
+    # (BARU) Hitung jumlah kandidat non-cooldown sebelum kemungkinan reset
+    non_cd_count = int(len(df))
+    
+    # Jika kandidat habis karena cooldown -> reset cooldown lalu rebuild kandidat sekali lagi
+    if df.empty and cd_days > 0:
+        _cool_reset_all()
+
+        # rebuild kandidat ringkas (sesuai filter awal di fungsi ini)
+        df = hakim_df.copy()
+        df["__aktif"] = df.get("aktif", 1).apply(_is_active_value)
+        df = df[df["__aktif"] == True]
+        jcol = next((c for c in _JBTN_COLS if c in df.columns), None)
+        if jcol:
+            mask_spesial = df[jcol].astype(str).str.contains(special_re, case=False, regex=True, na=False)
+            df = df[~mask_spesial]
+        if df.empty:
+            return "", None
+
+        df["__nama"] = df["nama"].astype(str).map(str.strip)
+
+        def _rencana_tgl_sidang(nama_hakim: str):
+            hnum = _hari_sidang_num_for(nama_hakim)
+            if hnum == 0:
+                return None
+            base_d = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
+            d = _compute_tgl_sidang(
+                base=base_d if isinstance(base_d, date) else base_d.date(),
+                jenis=jenis,
+                hari_sidang_num=hnum,
+                libur_set=libur_set,
+                klasifikasi=klasifikasi
+            )
+            return pd.to_datetime(d) if d else None
+
+        df["__rencana"] = df["__nama"].map(_rencana_tgl_sidang)
+        df = df[df["__rencana"].notna()]
+        if df.empty:
+            return "", None
+
+        # exclude CUTI hari ini & pada tanggal rencana (ulang)
+        if not cuti_df.empty:
+            today_pd = pd.to_datetime(date.today()).normalize()
+            df = df[~df.apply(
+                lambda r: (_is_hakim_cuti(r["__nama"], r["__rencana"], cuti_df) or _is_hakim_cuti(r["__nama"], today_pd, cuti_df)),
+                axis=1
+            )]
+        if df.empty:
+            return "", None
 
     # ===== Hitung beban & fairness =====
     bcfg = cfg.get("beban", {})
     counts = _weighted_load_counts(
         rekap_df=rekap_df,
         now_date=now_for_load,
-        window_days=int(dyn_window),
+        window_days=int(bcfg.get("window_days", 90)),
         half_life_days=int(bcfg.get("half_life_days", 30)),
         min_weight=float(bcfg.get("min_weight", 0.05)),
         use_decay=bool(bcfg.get("use_decay", True)),   # <-- TAMBAHKAN BARIS INI
@@ -1545,11 +1592,6 @@ with tab1:
             rekap_new = pd.concat([current_csv, pd.DataFrame([new_row])], ignore_index=True)
             _export_rekap_csv(rekap_new)
 
-            try:
-                _cool_v2_mark(hakim)
-            except Exception:
-                pass
-            
             # 2) Cooldown elastis + streak + reset jika tinggal 1 kandidat non-cooldown
             try:
                 base_for_cool = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
@@ -2462,8 +2504,9 @@ if is_admin:
                     except Exception as e:
                         st.warning(f"Debug gagal: {e}")
         
-        # ============ MINI DEBUG: Elastic Cooldown (TOKEN-BASED, tanpa penalti lembut) ============
-        with st.expander("🧪 Debug Elastic Cooldown (token-based, tanpa penalti lembut)", expanded=False):
+        # ============ MINI DEBUG: Elastic Cooldown (tanpa penalti lembut) ============
+        with st.expander("🧪 Debug Elastic Cooldown (tanpa penalti lembut)", expanded=False):
+            # default β (relatif) dari config hakim
             beta_val_default = float(get_config().get("hakim", {}).get("elastic_beta", 0.20))
 
             # input kontrol baris 1
@@ -2472,29 +2515,28 @@ if is_admin:
             dbg_jenis= dbg_col[1].selectbox("Jenis Perkara", ["Biasa","ISTBAT","GHOIB","ROGATORI","MAFQUD"], index=0, key=K("dbg_elastic","jenis"))
             dbg_klas = dbg_col[2].text_input("Klasifikasi (opsional)", value="", key=K("dbg_elastic","klas"))
             beta_val = dbg_col[3].number_input("β untuk τ relatif", min_value=0.0, max_value=1.0, value=beta_val_default, step=0.05, key=K("dbg_elastic","beta"))
-            apply_cd = dbg_col[4].toggle("Terapkan cooldown TOKEN jika perlu", value=False, key=K("dbg_elastic","apply"))
-            do_reset = dbg_col[5].button("♻️ Reset token cooldown (global)", key=K("dbg_elastic","reset"))
+            apply_cd = dbg_col[4].toggle("Terapkan cooldown jika perlu", value=False, key=K("dbg_elastic","apply"))
+            do_reset = dbg_col[5].button("♻️ Reset semua cooldown", key=K("dbg_elastic","reset"))
 
             if do_reset:
                 try:
-                    _cool_v2_reset_all()  # ← TOKEN RESET
-                    st.success("Token cooldown di-reset (epoch naik).")
+                    _cool_reset_all()
+                    st.success("Semua cooldown & streak dihapus.")
                 except Exception as e:
                     st.error(f"Gagal reset: {e}")
 
-               # input kontrol baris 2 — hanya window (hari)
+            # input kontrol baris 2 — HANYA window (hari)
             bcfg = get_config().get("beban", {}) or {}
             colp = st.columns([1.2])
             with colp[0]:
-                default_win = _window_days_last_prev_to_today(dbg_day)
                 window_days = st.number_input(
-                    "Window (hari) – default: last prev month → today",
-                    min_value=1, max_value=365,
-                    value=int(default_win), step=1,
-                    key=K("dbg_elastic","win")
-                    )
+                "Window (hari)", min_value=7, max_value=365,
+                value=int(bcfg.get("window_days", 90)),
+                step=1,
+                key=K("dbg_elastic","win")   # ← was K("dbg","win")
+                )
 
-            # --- Konstruksi kandidat (mirror singkat dari _pick_ketua_by_beban) ---
+            # --- Konstruksi kandidat (mirror dari _pick_ketua_by_beban, versi ringkas) ---
             def _kandidat_for_debug(now_d: date, jenis: str, klas: str) -> pd.DataFrame:
                 cfg = get_config()
                 libur_set_local = _libur_set_from_df(libur_df)
@@ -2536,7 +2578,7 @@ if is_admin:
                         base=(base_d if isinstance(base_d, date) else base_d.date()),
                         jenis=dbg_jenis,
                         hari_sidang_num=hnum,
-                        libur_set=libur_set_local,
+                        libur_set=_libur_set_from_df(libur_df),
                         klasifikasi=dbg_klas,
                     )
                     return pd.to_datetime(d) if d else None
@@ -2546,7 +2588,7 @@ if is_admin:
                 if df.empty:
                     return df
 
-                # exclude CUTI (hari ini & pada tanggal rencana)
+                # exclude yang cuti (hari ini & pada tanggal rencana)
                 if not cuti_df_local.empty:
                     today_pd = pd.to_datetime(date.today()).normalize()
                     df = df[~df.apply(
@@ -2561,12 +2603,23 @@ if is_admin:
             if cand.empty:
                 st.info("Tidak ada kandidat (cek master hakim, hari sidang, libur/cuti).")
             else:
-                # --- TOKEN-BASED cooldown filter ---
-                cand["_under_cd"] = cand["__nama"].map(_cool_v2_is_active)
+                cfg = get_config()
+                cd_days = int(cfg.get("hakim", {}).get("cooldown_days", 0) or 0)
+
+                def _under_cooldown(nm: str) -> bool:
+                    if cd_days <= 0:
+                        return False
+                    last = _cool_load_date(nm)
+                    try:
+                        return (last is not None) and ((pd.to_datetime(dbg_day).date() - last).days < cd_days)
+                    except Exception:
+                        return False
+
+                cand["_under_cd"] = cand["__nama"].map(_under_cooldown)
                 cand2 = cand[~cand["_under_cd"]].copy()
 
-                # simulasi: jika semua under cooldown, tampilkan semua (tanpa filter) agar tetap bisa dianalisis
-                if cand2.empty:
+                # simulasi reset jika semua under cooldown
+                if cand2.empty and cd_days > 0:
                     cand2 = cand.copy()
                     cand2["_under_cd"] = False
 
@@ -2574,48 +2627,53 @@ if is_admin:
                 counts = _weighted_load_counts(
                     rekap_df=rekap_df,
                     now_date=dbg_day,
-                    window_days=int(window_days),
-                    half_life_days=int(bcfg.get("half_life_days", 30)),
-                    min_weight=float(bcfg.get("min_weight", 0.05)),
-                    use_decay=bool(bcfg.get("use_decay", True)),
+                    window_days=int(window_days),                      # <= dari kontrol debug
+                    half_life_days=int(bcfg.get("half_life_days", 30)),# tetap ikut config
+                    min_weight=float(bcfg.get("min_weight", 0.05)),    # tetap ikut config
+                    use_decay=bool(bcfg.get("use_decay", True)),       # tetap ikut config
                 )
                 cand2["__load"] = cand2["__nama"].map(lambda n: float(counts.get(n, 0.0)))
                 cand2["__last_seen_days"] = cand2["__nama"].map(lambda n: _last_seen_days_for(n, rekap_df, dbg_day))
-                cand2 = cand2.sort_values(by=["__load","__last_seen_days","__nama"], ascending=[True,False,True], kind="stable")
 
+                # urutan seperti runtime: load (kecil dulu), lalu lama tidak terpilih
+                cand2 = cand2.sort_values(by=["__load","__last_seen_days","__nama"], ascending=[True,False,True], kind="stable")
                 chosen = str(cand2.iloc[0]["__nama"]) if not cand2.empty else ""
                 loads_series = pd.Series(cand2["__load"].values, index=cand2["__nama"].values)
+
+                abs_gap_cfg = float(cfg.get("hakim", {}).get("elastic_min_gap_cool", 2.0))
+                need_cd = _elastic_should_cooldown(
+                    chosen,
+                    loads_series,
+                    beta=float(beta_val),
+                    abs_gap_cool=abs_gap_cfg,
+                ) if chosen else False
+
+                # label mode (dari config)
                 mode_txt = "decay (half-life)" if bool(bcfg.get("use_decay", True)) else "uniform (equal weights)"
-
-                # threshold
-                s_sorted = loads_series.sort_values(ascending=True, kind="stable")
-                L1 = float(loads_series.loc[chosen]) if chosen in loads_series.index else float("nan")
-                L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
-                Lmin = float(s_sorted.iloc[0]) if len(s_sorted) > 0 else float("nan")
-                Lmax = float(s_sorted.iloc[-1]) if len(s_sorted) > 0 else float("nan")
-                tau = float(beta_val) * (Lmax - Lmin) if (not pd.isna(Lmax) and not pd.isna(Lmin)) else float("nan")
-
-                abs_gap_cfg = float(get_config().get("hakim", {}).get("elastic_min_gap_cool", 2.0))
-                gap = (L2 - L1) if (not pd.isna(L1) and not pd.isna(L2)) else float("nan")
-
-                need_cd = False
-                if chosen and cand2.shape[0] > 1:
-                    # aturan gabungan: cooldown jika (gap ≤ τ) ATAU (gap < ambang absolut)
-                    need_cd = (pd.notna(gap) and pd.notna(tau) and gap <= tau) or (pd.notna(gap) and gap < abs_gap_cfg)
 
                 # --- Ringkasan keputusan ---
                 st.markdown("**Ringkasan keputusan**")
                 if chosen:
+                    s_sorted = loads_series.sort_values(ascending=True, kind="stable")
+                    L1 = float(loads_series.loc[chosen])
+                    L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
+                    Lmin, Lmax = float(s_sorted.iloc[0]), float(s_sorted.iloc[-1])
+                    gap = (L2 - L1) if pd.notna(L2) else float("nan")
+                    tau = float(beta_val) * max(1e-9, (Lmax - Lmin))
+
                     st.write(f"- **Ketua terpilih (simulasi):** {chosen}  _(mode beban: {mode_txt}; window={int(window_days)} hari)_")
-                    st.write(f"- **L1:** {L1:.4f} • **L2:** {L2 if pd.notna(L2) else float('nan'):.4f} • **gap:** {gap if pd.notna(gap) else float('nan'):.4f}")
-                    st.write(f"- **τ (beta×rentang):** {tau if pd.notna(tau) else float('nan'):.4f} (β={beta_val})")
+                    st.write(f"- **L1:** {L1:.4f} • **L2:** {L2:.4f} • **gap:** {gap:.4f}")
+                    st.write(f"- **τ (beta×rentang):** {tau:.4f} (β={beta_val})")
                     st.write(f"- **Aturan gap absolut:** gap < {abs_gap_cfg:.2f} ⇒ cooldown")
+
                     if cand2.shape[0] == 1:
                         st.info("Hanya 1 kandidat aktif ⇒ tidak di-cooldown.", icon="ℹ️")
+                    elif pd.notna(gap) and gap < abs_gap_cfg:
+                        st.success("Keputusan: **MASUK cooldown** (karena gap < ambang absolut).")
                     elif need_cd:
-                        st.success("Keputusan: **MASUK cooldown (TOKEN)**.")
+                        st.success("Keputusan: **MASUK cooldown** (gap ≤ τ).")
                     else:
-                        st.warning("Keputusan: **TIDAK di-cooldown**.")
+                        st.warning("Keputusan: **TIDAK di-cooldown** (gap > τ dan ≥ ambang absolut).")
                 else:
                     st.info("Tidak ada kandidat setelah filter.", icon="ℹ️")
 
@@ -2637,7 +2695,7 @@ if is_admin:
                 show = show.sort_values(by=["Under cooldown?","Chosen?","Load","Hakim"], ascending=[True,False,True,True], kind="stable")
                 st.dataframe(show, width='stretch', height=min(420, 52 + 28*len(show)))
 
-                # streak info (opsional)
+                # ringkas streak hari ini (kalau ada)
                 try:
                     obj = _rr_load() or {}
                     dkey = str(pd.to_datetime(dbg_day).normalize().date())
@@ -2647,17 +2705,16 @@ if is_admin:
                 except Exception:
                     pass
 
-                # Tindakan tulis TOKEN cooldown (opsional)
+                # Tindakan tulis cooldown (opsional)
                 if apply_cd and chosen:
                     try:
                         if need_cd:
-                            _cool_v2_mark(chosen)  # ← TOKEN MARK
-                            st.toast(f"Cooldown TOKEN ditulis untuk: {chosen}", icon="✅")
+                            _cool_save_date(chosen, dbg_day)
+                            st.toast(f"Cooldown ditulis untuk: {chosen}", icon="✅")
                         else:
-                            st.toast("Tidak menulis cooldown TOKEN (dianggap tidak perlu).", icon="ℹ️")
+                            st.toast("Tidak menulis cooldown (gap > τ).", icon="ℹ️")
                     except Exception as e:
-                        st.error(f"Gagal menulis token cooldown: {e}")
-
+                        st.error(f"Gagal menulis cooldown: {e}")
                         
         with st.expander("🧾 Audit terakhir", expanded=False):
             aud = _read_csv(Path(AUDIT_LOG_CSV))

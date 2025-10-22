@@ -43,11 +43,7 @@ USERS: Dict[str, Dict[str, str]] = {
         "hash_hex": "3646b5eb1e6c56e4e02578357be841e1cb280dc0d2e4f939debabc778c5acc9c",
         "role": "user",
     },
-    "saef": {
-        "salt_hex": "5afc223f2240a034c91e8f83ed25bfad",
-        "hash_hex": "2de79f69c249b0fdde6360e621fb8224c773d25be79cfa4eb78eba5f8b29a886",
-        "role": "admin",
-    }
+    # Tambahkan user lain di sini...
 }
 
 def get_user(username: str) -> Optional[Dict[str, str]]:

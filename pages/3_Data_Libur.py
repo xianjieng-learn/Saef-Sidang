@@ -8,12 +8,14 @@ import io
 import math
 from pathlib import Path
 from typing import Optional, Dict
-from app_core.login import _ensure_auth  
+from app_core.login import _ensure_auth
 import pandas as pd
 import streamlit as st
+from app_core.nav import render_top_nav
+render_top_nav()  # tampilkan top bar
 
 # ====== Setup dasar ======
-st.set_page_config(page_title="Data: Libur (CSV)", layout="wide")
+st.set_page_config(page_title="Data: Libur (CSV)", layout="wide", initial_sidebar_state="collapsed")
 st.header("📅 Data Libur — CSV Only")
 
 DATA_DIR = Path.cwd() / "data"

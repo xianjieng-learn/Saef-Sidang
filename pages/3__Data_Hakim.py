@@ -6,10 +6,12 @@ from datetime import date
 from typing import Dict, List, Set, Tuple
 import pandas as pd
 import streamlit as st
-from app_core.login import _ensure_auth  
+from app_core.login import _ensure_auth
+from app_core.nav import render_top_nav
+render_top_nav()  # tampilkan top bar
 
 # =================== Page meta ===================
-st.set_page_config(page_title="🧑‍⚖️      Data & Cuti Hakim", layout="wide")
+st.set_page_config(page_title="🧑‍⚖️      Data & Cuti Hakim", layout="wide", initial_sidebar_state="collapsed")
 st.header("🧑‍⚖️ Data Hakim & 🗓️ Cuti Hakim")
 
 # =================== Paths =======================

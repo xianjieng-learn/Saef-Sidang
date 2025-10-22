@@ -3,15 +3,65 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 import streamlit as st
-from app_core.login import _ensure_auth 
+import auth_utils, re, importlib
+from auth_utils import hash_new_password
+from app_core.style import base_tweaks, load_css_file
+
+from app_core.nav import render_top_nav
+render_top_nav()  # auto-deteksi halaman aktif
+
 # === import dari auth_utils.py buatanmu ===
 # pastikan di folder yang sama dengan app.py
 from auth_utils import get_user, verify_password  # get_user(username) -> dict | None
-
+AUTH_PATH = Path(auth_utils.__file__).resolve()
+BACKUP_DIR = AUTH_PATH.parent / "data" / "backups"
+BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 # ================== CONFIG APP ==================
 st.set_page_config(page_title="SAEF Sidang", layout="wide")
 SESSION_TTL_HOURS = 1  # sesi kedaluwarsa otomatis
+# app.py (tambahkan import di atas file)
+from auth_utils import verify_password, hash_new_password, get_user as get_user_legacy
+import user_store  # file baru yang barusan dibuat
 
+st.set_page_config(
+    page_title="SAEF",
+    layout="wide",
+    initial_sidebar_state="collapsed",  # ⬅️ auto ditutup saat halaman dibuka
+)
+
+# ====== Fungsi login yang membaca dari users.json dahulu ======
+def _login_view():
+    st.markdown("## 🔐 Masuk ke SAEF Sidang")
+    st.caption("Silakan login terlebih dahulu.")
+
+    with st.form("saef_login_form", clear_on_submit=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            username = st.text_input("Username", autocomplete="username")
+        with c2:
+            password = st.text_input("Password", type="password", autocomplete="current-password")
+        submitted = st.form_submit_button("Masuk", use_container_width=True)
+
+    if submitted:
+        user = (username or "").strip()
+        rec = user_store.get_user(user)  # ⬅️ PRIORITAS: dari JSON
+        source = "json"
+        if not rec:
+            rec = get_user_legacy(user)  # fallback ke auth_utils.py (legacy)
+            source = "legacy"
+        if not rec:
+            st.error("Username tidak ditemukan.")
+            return
+        if not verify_password(password or "", rec["salt_hex"], rec["hash_hex"]):
+            st.error("Password salah.")
+            return
+
+        # sukses → set session
+        _set_authed(user, rec.get("role","user"))
+        st.success(f"Selamat datang, {user}! (source: {source})")
+        st.rerun()
+
+# … (gate auth kamu tetap sama) …
 # ================== AUTH HELPERS ==================
 def _set_authed(username: str, role: str = "user"):
     st.session_state["auth_user"] = username
@@ -67,37 +117,10 @@ def _login_view():
         elif reset_btn:
             st.rerun()
 
-def _topbar_with_router():
-    l, m, r = st.columns([5,3,1])
-    with l:
-        st.caption(
-            f"👤 Masuk sebagai **{st.session_state.get('auth_user','?')}** "
-            f"(role: {st.session_state.get('auth_role','user')})"
-        )
-    with r:
-        if st.button("Logout", use_container_width=True):
-            _clear_auth()
-            st.rerun()
-
-    # Router cepat (opsional selain sidebar Pages bawaan Streamlit)
-    with st.expander("🔗 Quick Links (Pages)", expanded=False):
-        # ganti sesuai isi folder pages/ milikmu
-        st.page_link("pages/1_Input_&_Hasil.py",   label="📥 Input & Hasil", icon="📥")
-        st.page_link("pages/2_Rekap.py",           label="📊 Rekap",          icon="📊")
-        st.page_link("pages/3_Data_Hakim.py",      label="⚖️ Data Hakim",     icon="⚖️")
-        st.page_link("pages/3_Data_PP.py",         label="🧑‍💼 Data PP",       icon="🧑‍💼")
-        st.page_link("pages/3_Data_JS.py",         label="📨 Data JS",        icon="📨")
-        st.page_link("pages/3_Data_Libur.py",      label="🏖️ Data Libur",     icon="🏖️")
-        st.page_link("pages/3_Data_SK_Majelis.py", label="📑 Data SK Majelis", icon="📑")
-        st.page_link("pages/4_BATCH_INSTRUMEN.py", label="🧰 Batch Instrumen", icon="🧰")
-
 # ================== LOGIN GATE ==================
 if not _is_authed():
     _login_view()
     st.stop()
-
-# ================== APP CONTENT (ASLI KAMU) ==================
-_topbar_with_router()
 
 # === Setup folder data (CSV-only) ===
 DATA_DIR = Path("data")

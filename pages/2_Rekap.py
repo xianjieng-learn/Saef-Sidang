@@ -8,7 +8,7 @@ from pathlib import Path
 import calendar
 import pandas as pd
 import streamlit as st
-from app_core.login import _ensure_auth  
+from app_core.login import _ensure_auth
 
 # ===== UI helper optional =====
 try:
@@ -16,8 +16,10 @@ try:
 except Exception:
     def inject_styles():
         pass
+from app_core.nav import render_top_nav
+render_top_nav()  # tampilkan top bar
 
-st.set_page_config(page_title="📊 Rekap", layout="wide")
+st.set_page_config(page_title="📊 Rekap", layout="wide", initial_sidebar_state="collapsed")
 inject_styles()
 st.header("📊 Rekap Data")
 

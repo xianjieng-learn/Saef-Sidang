@@ -5,12 +5,14 @@ import re
 import math
 from pathlib import Path
 from typing import Optional, List
-from app_core.login import _ensure_auth  
+from app_core.login import _ensure_auth 
 # --- Hilangkan impor DB ---
 # from db import get_conn, init_db     # (hapus)
 from app_core.exports import export_csv
+from app_core.nav import render_top_nav
+render_top_nav()  # tampilkan top bar
 
-st.set_page_config(page_title="Data: SK Majelis", layout="wide")
+st.set_page_config(page_title="Data: SK Majelis", layout="wide", initial_sidebar_state="collapsed")
 st.header("📝 Data SK Majelis")
 
 # ==================== Config path CSV ====================

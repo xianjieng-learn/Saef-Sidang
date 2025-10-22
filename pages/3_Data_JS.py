@@ -11,12 +11,14 @@ from __future__ import annotations
 import io, re, math
 from pathlib import Path
 from typing import Tuple, Dict, Set, Optional
-from app_core.login import _ensure_auth  
+from app_core.login import _ensure_auth
 import pandas as pd
 import streamlit as st
+from app_core.nav import render_top_nav
+render_top_nav()  # tampilkan top bar
 
 # ============== PAGE CONFIG ==============
-st.set_page_config(page_title="Data JS & JS Ghoib (CSV-only)", layout="wide")
+st.set_page_config(page_title="Data JS & JS Ghoib (CSV-only)", layout="wide", initial_sidebar_state="collapsed")
 st.header("📚 Data Jurusita (JS) & JS Ghoib — CSV-only")
 
 DATA_DIR = Path("data")
