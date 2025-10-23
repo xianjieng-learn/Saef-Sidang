@@ -658,27 +658,36 @@ def _elastic_should_cooldown(
     chosen_name: str,
     loads: pd.Series,
     beta: float = 0.20,
-    abs_gap_cool: float | None = None,   # ← BARU: ambang gap absolut (mis. 2.0)
+    abs_gap_cool: float | None = None,
 ) -> bool:
     """
-    Mode relatif: τ = beta * (Lmax - Lmin) pada set kandidat saat ini.
-    True  -> gap (L2-L1) <= τ  => MASUK cooldown
-    Plus  -> jika abs_gap_cool diset dan gap < abs_gap_cool => MASUK cooldown (paksa).
+    Mode relatif (revisi):
+      - L1  = load hakim terpilih
+      - Lmax= load maksimum di antara kandidat (beban terbanyak)
+      - gap = Lmax - L1   ← perubahan utama (sebelumnya pakai kandidat urutan kedua teringan)
+      - τ   = beta * (Lmax - Lmin)
+    Aturan:
+      True  -> gap <= τ  ⇒ masukkan cooldown
+      Plus  -> jika abs_gap_cool diset dan gap < abs_gap_cool ⇒ cooldown (paksa)
     """
     if not isinstance(loads, pd.Series) or loads.empty:
         return False
+
     s = loads.dropna().astype(float)
     if chosen_name not in s.index or len(s) <= 1:
         return False
 
+    # urutkan untuk ambil Lmin & Lmax
     s_sorted = s.sort_values(ascending=True, kind="stable")
+
     L1 = float(s.loc[chosen_name])
-    L2 = float(s_sorted.iloc[1]) if len(s_sorted) >= 2 else L1
-    Lmin, Lmax = float(s_sorted.iloc[0]), float(s_sorted.iloc[-1])
-    gap = L2 - L1
+    Lmin = float(s_sorted.iloc[0])
+    Lmax = float(s_sorted.iloc[-1])
+
+    # perubahan inti: L2 diganti Lmax
+    gap = Lmax - L1
     tau = beta * max(1e-9, (Lmax - Lmin))
 
-    # aturan absolut (opsional)
     if abs_gap_cool is not None and gap < float(abs_gap_cool):
         return True
 
@@ -2597,28 +2606,36 @@ if is_admin:
                 loads_series = pd.Series(cand2["__load"].values, index=cand2["__nama"].values)
                 mode_txt = "decay (half-life)" if bool(bcfg.get("use_decay", True)) else "uniform (equal weights)"
 
-                # threshold
+                # threshold (LOGIKA BARU: gap = Lmax - L1)
                 s_sorted = loads_series.sort_values(ascending=True, kind="stable")
-                L1 = float(loads_series.loc[chosen]) if chosen in loads_series.index else float("nan")
-                L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
+
+                L1   = float(loads_series.loc[chosen]) if chosen in loads_series.index else float("nan")
                 Lmin = float(s_sorted.iloc[0]) if len(s_sorted) > 0 else float("nan")
                 Lmax = float(s_sorted.iloc[-1]) if len(s_sorted) > 0 else float("nan")
+
                 tau = float(beta_val) * (Lmax - Lmin) if (not pd.isna(Lmax) and not pd.isna(Lmin)) else float("nan")
 
+                # ambang absolut opsional dari config (tetap sama)
                 abs_gap_cfg = float(get_config().get("hakim", {}).get("elastic_min_gap_cool", 2.0))
-                gap = (L2 - L1) if (not pd.isna(L1) and not pd.isna(L2)) else float("nan")
+
+                # >>> PERUBAHAN INTI: gap dihitung terhadap beban TERBERAT (Lmax), bukan L2
+                gap = (Lmax - L1) if (not pd.isna(L1) and not pd.isna(Lmax)) else float("nan")
 
                 need_cd = False
                 if chosen and cand2.shape[0] > 1:
-                    # aturan gabungan: cooldown jika (gap ≤ τ) ATAU (gap < ambang absolut)
+                    # cooldown jika (gap ≤ τ) ATAU (gap < ambang absolut)
                     need_cd = (pd.notna(gap) and pd.notna(tau) and gap <= tau) or (pd.notna(gap) and gap < abs_gap_cfg)
 
-                # --- Ringkasan keputusan ---
+                # --- Ringkasan keputusan (update label agar eksplisit Lmax) ---
                 st.markdown("**Ringkasan keputusan**")
                 if chosen:
                     st.write(f"- **Ketua terpilih (simulasi):** {chosen}  _(mode beban: {mode_txt}; window={int(window_days)} hari)_")
-                    st.write(f"- **L1:** {L1:.4f} • **L2:** {L2 if pd.notna(L2) else float('nan'):.4f} • **gap:** {gap if pd.notna(gap) else float('nan'):.4f}")
-                    st.write(f"- **τ (beta×rentang):** {tau if pd.notna(tau) else float('nan'):.4f} (β={beta_val})")
+                    st.write(
+                        f"- **L1 (terpilih):** {L1:.4f} • **Lmax (terberat):** {Lmax if pd.notna(Lmax) else float('nan'):.4f} "
+                        f"• **Lmin:** {Lmin if pd.notna(Lmin) else float('nan'):.4f} "
+                        f"• **gap (Lmax−L1):** {gap if pd.notna(gap) else float('nan'):.4f}"
+                    )
+                    st.write(f"- **τ (β×(Lmax−Lmin)) :** {tau if pd.notna(tau) else float('nan'):.4f} (β={beta_val})")
                     st.write(f"- **Aturan gap absolut:** gap < {abs_gap_cfg:.2f} ⇒ cooldown")
                     if cand2.shape[0] == 1:
                         st.info("Hanya 1 kandidat aktif ⇒ tidak di-cooldown.", icon="ℹ️")
