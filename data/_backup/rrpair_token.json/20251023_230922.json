@@ -11,12 +11,12 @@
     }
   },
   "rrpair::per_ketua::agus-abdullah": {
-    "idx": 2,
+    "idx": 1,
     "meta": {
       "ketua": "Drs. Agus Abdullah, M.H.",
       "combos_len": 4,
       "last_used_combo": {
-        "pp": "Neneng Kurniati, S.Ag.",
+        "pp": "Mochamad Taufik, S.Ag",
         "js": "Monika Septi Indriyani, A.Md., S.H."
       }
     }
@@ -33,23 +33,23 @@
     }
   },
   "rrpair::per_ketua::syakhrani": {
-    "idx": 1,
+    "idx": 0,
     "meta": {
       "ketua": "Drs. H. Syakhrani",
       "combos_len": 2,
       "last_used_combo": {
-        "pp": "Sri Mulyati, S.Ag., M.H.",
-        "js": "Sanjaya Langgeng Santoso"
+        "pp": "Muhammad Syaifur Rohim, S.E.I.",
+        "js": "Khairunas, S.H.I."
       }
     }
   },
   "rrpair::per_ketua::jajat-sudrajat": {
-    "idx": 2,
+    "idx": 1,
     "meta": {
       "ketua": "Drs. Jajat Sudrajat, S.H., M.H",
       "combos_len": 4,
       "last_used_combo": {
-        "pp": "Widya Fausiah, S.E., M.H.",
+        "pp": "Noni Salmy, S.HI.",
         "js": "Aji Djuanda Rachmad"
       }
     }
@@ -77,12 +77,12 @@
     }
   },
   "rrpair::per_ketua::taslimah": {
-    "idx": 1,
+    "idx": 0,
     "meta": {
       "ketua": "Dra. Taslimah, M.H.",
       "combos_len": 2,
       "last_used_combo": {
-        "pp": "Muhammad Thahir Guhir, S.H.,M.H.",
+        "pp": "Inayatus Salisya, S.H.,M.H.",
         "js": "Sehudin, S.H."
       }
     }
@@ -118,12 +118,6 @@
         "pp": "Sujiati, S.H.,M.H.",
         "js": "Umi Nurulia"
       }
-    }
-  },
-  "streak": {
-    "2025-10-23": {
-      "last": "Dra. Taslimah, M.H.",
-      "count": 1
     }
   }
 }

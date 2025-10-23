@@ -1,11 +1,11 @@
 {
-  "epoch": 4,
+  "epoch": 6,
   "map": {
-    "Dra. Mulathifah, M.H.": 4,
-    "Drs. H. Syakhrani": 4,
-    "Drs. Agus Abdullah, M.H.": 4,
-    "Drs. Jajat Sudrajat, S.H., M.H": 4,
-    "Dra. Taslimah, M.H.": 4
+    "Dra. Mulathifah, M.H.": 6,
+    "Drs. H. Syakhrani": 6,
+    "Drs. Agus Abdullah, M.H.": 6,
+    "Drs. Jajat Sudrajat, S.H., M.H": 6,
+    "Dra. Taslimah, M.H.": 6
   },
   "auto_daily": false,
   "last_reset_date": "2025-10-23"
