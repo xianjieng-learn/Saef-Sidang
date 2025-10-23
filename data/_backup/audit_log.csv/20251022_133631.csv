@@ -1,5 +1,0 @@
-﻿ts,nomor_perkara,tgl_register,ketua,jenis,klasifikasi,mode_beban,beta,tau,L1,L2,gap,cooldown_reason,cd_days,non_cd_count,reset_after_save,cuti_hari_ini,cuti_tgl_rencana,under_cd_before
-2025-10-22T11:22:01.773672,4596 Pdt.G/2025/PA.JT,2025-10-22,"Drs. Agus Abdullah, M.H.",GHOIB,CT,uniform,0.1,0.0,200.0,,,only_one_candidate,1,1,True,False,False,False
-2025-10-22T11:26:18.171365,4597 Pdt.G/2025/PA.JT,2025-10-22,"Dra. Mulathifah, M.H.",Biasa,CG,uniform,0.1,2.1000000000000005,180.0,183.0,3.0,no_cd,1,7,False,False,False,False
-2025-10-22T11:41:13.443664,855 Pdt.P/2025/PA.JT,2025-10-22,"Dra. Mulathifah, M.H.",ISTBAT,ISTBAT,uniform,0.1,2.0000000000000004,181.0,183.0,2.0,"streak,tau",1,7,False,False,False,False
-2025-10-22T13:36:30.776231,4598 Pdt.G/2025/PA.JT,2025-10-22,"Idawati, S.Ag., M.H.",Biasa,CG,uniform,0.10000000000000002,1.8000000000000003,183.0,194.0,11.0,no_cd,1,6,False,False,False,False

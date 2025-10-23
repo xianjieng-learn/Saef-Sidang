@@ -1121,71 +1121,6 @@ def _pick_ketua_by_beban(
 
     df = df[~df["__nama"].map(_cool_v2_is_active)]
     non_cd_count = int(len(df))  # dipakai buat _elastic_ctx di bawah
-    # Jika kandidat habis karena cooldown -> reset cooldown lalu rebuild kandidat sekali lagi
-    if df.empty and int(get_config().get("hakim", {}).get("cooldown_days", 0) or 0) > 0:
-        # 1) reset cooldown (pakai token v2 kalau ada; kalau tidak, pakai legacy)
-        try:
-            try:
-                _cool_v2_reset_all()   # sistem token-based
-            except NameError:
-                _cool_reset_all()      # fallback legacy
-        except Exception:
-            # sengaja diam: jangan biarkan error reset menghentikan proses
-            pass
-
-        # 2) rebuild kandidat ringkas (ulang filter awal di fungsi ini)
-        df = hakim_df.copy()
-        df["__aktif"] = df.get("aktif", 1).apply(_is_active_value)
-        df = df[df["__aktif"] == True]
-        jcol = next((c for c in _JBTN_COLS if c in df.columns), None)
-
-        special_re = (get_config().get("hakim", {}) or {}).get("exclude_jabatan_regex", r"\b(ketua|wakil)\b")
-        if jcol:
-            try:
-                mask_spesial = df[jcol].astype(str).str.contains(special_re, case=False, regex=True, na=False)
-            except Exception:
-                mask_spesial = df[jcol].astype(str).str.contains(r"\b(ketua|wakil)\b", case=False, regex=True, na=False)
-            df = df[~mask_spesial]
-
-        if df.empty:
-            return "", None  # tidak ada hakim aktif sama sekali
-
-        df["__nama"] = df["nama"].astype(str).map(str.strip)
-
-        # hitung rencana tanggal sidang per kandidat (pakai variabel yang sudah ada di fungsi ini)
-        def _rencana_tgl_sidang(nama_hakim: str):
-            hnum = _hari_sidang_num_for(nama_hakim)
-            if hnum == 0:
-                return None
-            base_d = tgl_register_input if isinstance(tgl_register_input, (datetime, date)) else date.today()
-            d = _compute_tgl_sidang(
-                base=(base_d if isinstance(base_d, date) else base_d.date()),
-                jenis=jenis,
-                hari_sidang_num=hnum,
-                libur_set=libur_set,
-                klasifikasi=klasifikasi,
-            )
-            return pd.to_datetime(d) if d else None
-
-        df["__rencana"] = df["__nama"].map(_rencana_tgl_sidang)
-        df = df[df["__rencana"].notna()]
-        if df.empty:
-            return "", None  # tidak ada yang punya tanggal rencana
-
-        # exclude CUTI (hari ini & pada tanggal rencana) — ulangi supaya konsisten
-        if not cuti_df.empty:
-            today_pd = pd.to_datetime(date.today()).normalize()
-            df = df[~df.apply(
-                lambda r: (
-                    _is_hakim_cuti(r["__nama"], r["__rencana"], cuti_df)
-                    or _is_hakim_cuti(r["__nama"], today_pd,      cuti_df)
-                ),
-                axis=1
-            )]
-        if df.empty:
-            return "", None
-
-        # >>> optional: bila kamu masih butuh filter lain (mis. jadwal, libur, dsb.), taruh di sini <<<
 
     # ===== Hitung beban & fairness =====
     bcfg = cfg.get("beban", {})
@@ -1681,13 +1616,13 @@ with tab1:
                 mode_beban = "decay" if bool(get_config().get("beban", {}).get("use_decay", True)) else "uniform"
 
                 # hitung L1, L2, tau, gap (aman jika data minim)
-                L1 = float(loads_series.loc[chosen]) if (chosen in loads_series.index) else float("nan")
                 s_sorted = loads_series.sort_values(ascending=True, kind="stable")
-                L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
+                L1   = float(loads_series.loc[chosen]) if (chosen in loads_series.index) else float("nan")
                 Lmin = float(s_sorted.iloc[0]) if len(s_sorted) > 0 else float("nan")
                 Lmax = float(s_sorted.iloc[-1]) if len(s_sorted) > 0 else float("nan")
-                tau = beta_cfg * (Lmax - Lmin) if (not pd.isna(Lmax) and not pd.isna(Lmin)) else float("nan")
-                gap = (L2 - L1) if (not pd.isna(L1) and not pd.isna(L2)) else float("nan")
+                tau  = float(beta_cfg) * (Lmax - Lmin) if (not pd.isna(Lmax) and not pd.isna(Lmin)) else float("nan")
+                gap  = (Lmax - L1) if (not pd.isna(L1) and not pd.isna(Lmax)) else float("nan")
+
 
                 # reason ringkas
                 reason = []
@@ -1708,7 +1643,7 @@ with tab1:
                     "mode_beban": mode_beban,
                     "beta": beta_cfg,
                     "tau": tau,
-                    "L1": L1, "L2": L2, "gap": gap,
+                    "L1": L1, "Lmax": Lmax, "Lmin": Lmin, "gap": gap,
                     "cooldown_reason": reason,
                     "cd_days": cd_days_local,
                     "non_cd_count": non_cd_count,
@@ -2234,8 +2169,36 @@ if is_admin:
                 "Ambang gap absolut untuk cooldown (gap < N)",
                 min_value=0.0, step=0.1,
                 value=float(cfg["hakim"].get("elastic_min_gap_cool", 2.0)),
-                help="Jika (L2−L1) < N, pemenang langsung di-cooldown (di luar aturan τ).",
+                help="Jika (Lmax−L1) < N, pemenang langsung di-cooldown (di luar aturan τ).",
                 key=K("t4","abs_gap_cool"),
+            )
+
+            st.markdown("---")
+
+            # ---------- Beban ----------
+            st.markdown("#### Beban (rolling window)")
+            bcol0, bcol1, bcol2, bcol3 = st.columns(4)
+            use_decay_ui = bcol0.toggle(
+                "Gunakan peluruhan (half-life)?",
+                value=bool(bcfg.get("use_decay", True)),
+                key=K("t4","use_decay"),
+                help="Jika dimatikan: setiap perkara dalam window dihitung sama (uniform)."
+            )
+            win_days = bcol1.number_input(
+                "Window hari", min_value=1, step=1,
+                value=int(bcfg.get("window_days", 90)),
+                key=K("t4","win_days_cfg"),
+            )
+            half_life = bcol2.number_input(
+                "Half-life hari", min_value=1, step=1,
+                value=int(bcfg.get("half_life_days", 30)),
+                disabled=not use_decay_ui,
+                key=K("t4","half_life_cfg"),
+            )
+            min_w = bcol3.number_input(
+                "Min weight (0-1)", min_value=0.0, step=0.01,
+                value=float(bcfg.get("min_weight", 0.05)),
+                key=K("t4","min_weight_cfg"),
             )
 
             st.markdown("---")
@@ -2253,6 +2216,11 @@ if is_admin:
 
         # =================== SETELAH SUBMIT: SIMPAN KE FILE ===================
         if saved:
+            cfg.setdefault("beban", {})
+            cfg["beban"]["use_decay"] = bool(use_decay_ui)
+            cfg["beban"]["window_days"] = int(win_days)
+            cfg["beban"]["half_life_days"] = int(half_life)
+            cfg["beban"]["min_weight"] = float(min_w)
 
             cfg["rotasi"]["mode"] = mode
             cfg["rotasi"]["increment_on_save"] = bool(inc)
@@ -2638,28 +2606,36 @@ if is_admin:
                 loads_series = pd.Series(cand2["__load"].values, index=cand2["__nama"].values)
                 mode_txt = "decay (half-life)" if bool(bcfg.get("use_decay", True)) else "uniform (equal weights)"
 
-                # threshold
+                # threshold (LOGIKA BARU: gap = Lmax - L1)
                 s_sorted = loads_series.sort_values(ascending=True, kind="stable")
-                L1 = float(loads_series.loc[chosen]) if chosen in loads_series.index else float("nan")
-                L2 = float(s_sorted.iloc[1]) if len(s_sorted) > 1 else float("nan")
+
+                L1   = float(loads_series.loc[chosen]) if chosen in loads_series.index else float("nan")
                 Lmin = float(s_sorted.iloc[0]) if len(s_sorted) > 0 else float("nan")
                 Lmax = float(s_sorted.iloc[-1]) if len(s_sorted) > 0 else float("nan")
+
                 tau = float(beta_val) * (Lmax - Lmin) if (not pd.isna(Lmax) and not pd.isna(Lmin)) else float("nan")
 
+                # ambang absolut opsional dari config (tetap sama)
                 abs_gap_cfg = float(get_config().get("hakim", {}).get("elastic_min_gap_cool", 2.0))
-                gap = (L2 - L1) if (not pd.isna(L1) and not pd.isna(L2)) else float("nan")
+
+                # >>> PERUBAHAN INTI: gap dihitung terhadap beban TERBERAT (Lmax), bukan L2
+                gap = (Lmax - L1) if (not pd.isna(L1) and not pd.isna(Lmax)) else float("nan")
 
                 need_cd = False
                 if chosen and cand2.shape[0] > 1:
-                    # aturan gabungan: cooldown jika (gap ≤ τ) ATAU (gap < ambang absolut)
+                    # cooldown jika (gap ≤ τ) ATAU (gap < ambang absolut)
                     need_cd = (pd.notna(gap) and pd.notna(tau) and gap <= tau) or (pd.notna(gap) and gap < abs_gap_cfg)
 
-                # --- Ringkasan keputusan ---
+                # --- Ringkasan keputusan (update label agar eksplisit Lmax) ---
                 st.markdown("**Ringkasan keputusan**")
                 if chosen:
                     st.write(f"- **Ketua terpilih (simulasi):** {chosen}  _(mode beban: {mode_txt}; window={int(window_days)} hari)_")
-                    st.write(f"- **L1:** {L1:.4f} • **L2:** {L2 if pd.notna(L2) else float('nan'):.4f} • **gap:** {gap if pd.notna(gap) else float('nan'):.4f}")
-                    st.write(f"- **τ (beta×rentang):** {tau if pd.notna(tau) else float('nan'):.4f} (β={beta_val})")
+                    st.write(
+                        f"- **L1 (terpilih):** {L1:.4f} • **Lmax (terberat):** {Lmax if pd.notna(Lmax) else float('nan'):.4f} "
+                        f"• **Lmin:** {Lmin if pd.notna(Lmin) else float('nan'):.4f} "
+                        f"• **gap (Lmax−L1):** {gap if pd.notna(gap) else float('nan'):.4f}"
+                    )
+                    st.write(f"- **τ (β×(Lmax−Lmin)) :** {tau if pd.notna(tau) else float('nan'):.4f} (β={beta_val})")
                     st.write(f"- **Aturan gap absolut:** gap < {abs_gap_cfg:.2f} ⇒ cooldown")
                     if cand2.shape[0] == 1:
                         st.info("Hanya 1 kandidat aktif ⇒ tidak di-cooldown.", icon="ℹ️")

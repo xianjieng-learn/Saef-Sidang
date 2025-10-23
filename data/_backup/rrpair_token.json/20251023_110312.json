@@ -1,55 +1,55 @@
 {
   "rrpair::per_ketua::mulathifah": {
-    "idx": 1,
+    "idx": 0,
     "meta": {
       "ketua": "Dra. Mulathifah, M.H.",
       "combos_len": 4,
       "last_used_combo": {
-        "pp": "Imron Rosyidi, S.H.",
-        "js": "Rina Marlina, SE"
+        "pp": "Nur Holia, S.H., M.H.",
+        "js": "Sabar Kuswanto"
       }
     }
   },
   "rrpair::per_ketua::agus-abdullah": {
-    "idx": 0,
+    "idx": 3,
     "meta": {
       "ketua": "Drs. Agus Abdullah, M.H.",
       "combos_len": 4,
       "last_used_combo": {
-        "pp": "Neneng Kurniati, S.Ag.",
+        "pp": "Mochamad Taufik, S.Ag",
         "js": "Ismail"
       }
     }
   },
   "rrpair::per_ketua::ifdal": {
-    "idx": 1,
+    "idx": 0,
     "meta": {
       "ketua": "Drs. Ifdal, S.H.",
       "combos_len": 4,
       "last_used_combo": {
-        "pp": "Endang Bahtiar, S.H., M.H.",
-        "js": "Zainal Arifin"
+        "pp": "Zamzam Lubis, S.H., M.H.",
+        "js": "Ombang Hasyim Ashari, S.Ag."
       }
     }
   },
   "rrpair::per_ketua::syakhrani": {
-    "idx": 1,
+    "idx": 0,
     "meta": {
       "ketua": "Drs. H. Syakhrani",
       "combos_len": 2,
       "last_used_combo": {
-        "pp": "Sri Mulyati, S.Ag., M.H.",
+        "pp": "Muhammad Syaifur Rohim, S.E.I.",
         "js": "Khairunas, S.H.I."
       }
     }
   },
   "rrpair::per_ketua::jajat-sudrajat": {
-    "idx": 0,
+    "idx": 3,
     "meta": {
       "ketua": "Drs. Jajat Sudrajat, S.H., M.H",
       "combos_len": 4,
       "last_used_combo": {
-        "pp": "Widya Fausiah, S.E., M.H.",
+        "pp": "Noni Salmy, S.HI.",
         "js": "Evi Setyowati, S.Sos."
       }
     }
@@ -122,8 +122,11 @@
   },
   "streak": {
     "2025-10-23": {
-      "last": "Dra. Taslimah, M.H.",
+      "last": "Drs. Jajat Sudrajat, S.H., M.H",
       "count": 1
     }
+  },
+  "cooldown::agus abdullah": {
+    "last_pick": "2025-10-23"
   }
 }

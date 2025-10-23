@@ -13,9 +13,9 @@
     "exclude_jabatan_regex": "\\b(ketua|wakil)\\b",
     "dropdown_show_cuti_default": false,
     "cooldown_days": 1,
-    "elastic_beta": 0.2,
+    "elastic_beta": 0.39999999999999997,
     "elastic_streak_cap": 2,
-    "elastic_min_gap_cool": 2.0
+    "elastic_min_gap_cool": 2.1
   },
   "tampilan": {
     "tanggal_locale": "id-ID",
