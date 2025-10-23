@@ -12,11 +12,11 @@ PAGES = [
     {"path": "app.py",                        "label": "Home",          "icon": "🏠"},
     {"path": "pages/1_Input_&_Hasil.py",      "label": "Input & Hasil", "icon": "📥"},
     {"path": "pages/2_Rekap.py",              "label": "Rekap",         "icon": "📊"},
+    {"path": "pages/4_BATCH_INSTRUMEN.py",    "label": "Batch",         "icon": "🧰"},
     {"path": "pages/3__Data_Hakim.py",         "label": "Data Hakim",    "icon": "⚖️"},
     {"path": "pages/3__Data_PP.py",            "label": "Data PP",       "icon": "🧑‍💼"},
     {"path": "pages/3_Data_JS.py",            "label": "Data JS",       "icon": "🧑‍💻"},
     {"path": "pages/3_Data_Libur.py",         "label": "Data Libur",    "icon": "📅"},
-    {"path": "pages/4_BATCH_INSTRUMEN.py",    "label": "Batch",         "icon": "🧰"},
     {"path": "pages/9_user.py",       "label": "Users",         "icon": "👤", "admin_only": True},
 ]
 
