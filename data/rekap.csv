@@ -1,4 +1,4 @@
-﻿nomor_perkara,tgl_register,klasifikasi,jenis_perkara,metode,hakim,anggota1,anggota2,pp,js,tgl_sidang,tgl_sidang_override,__id
+nomor_perkara,tgl_register,klasifikasi,jenis_perkara,metode,hakim,anggota1,anggota2,pp,js,tgl_sidang,tgl_sidang_override,__id
 1 Pdt.G,2025-01-02,CG,E-Court,e-court,"Dra. St. Nadirah, S.H., M.H","Drs. Sohel,S.H.","Ahmad Bisri, S.H., M.H",Rini,"Winahya Vembriarsi, A.Md.",2025-01-13,0,c327d605-3ad8-44ab-b7af-cb4c3634f76c
 21 Pdt.G,2025-01-02,CG,E-Court,e-court,"Drs. Jajat Sudrajat, S.H., M.H",5,Fahat,Ikbal,Umi Nurulia,2025-01-13,0,a03f43f1-d0c6-4744-9bfd-20a89d57889d
 2 Pdt.P,2025-01-02,Dispensasi,E-Court,e-court,"Ahmad Bisri, S.H., M.H",31,,Inayatus,"Evi Setyowati, S.Sos.",2025-01-14,0,bade0a03-f85a-4127-b807-a96af67e22b1
@@ -5420,3 +5420,21 @@
 4626 Pdt.G/2025/PA.JT,2025-10-23,CG,Biasa,E-Court,"Drs. Agus Abdullah, M.H.",Drs. H. Syakhrani,"Drs. Jajat Sudrajat,S.H., M.H","Neneng Kurniati, S.Ag.","Monika Septi Indriyani, A.Md., S.H.",2025-11-05,0,531ebe25-4d18-4be3-b6a4-95912e8c731c
 4627 Pdt.G/2025/PA.JT,2025-10-23,CG,Biasa,E-Court,"Drs. Jajat Sudrajat, S.H., M.H",Drs. H. Syakhrani,"Drs. Agus Abdullah, M.H.","Widya Fausiah, S.E., M.H.",Aji Djuanda Rachmad,2025-11-03,0,5a0ef8e9-57d6-42c7-8248-c376e1031321
 4628 Pdt.G/2025/PA.JT,2025-10-23,CG,Biasa,E-Court,"Dra. Taslimah, M.H.","Drs. Agus Abdullah, M.H.","Idawati, S.Ag., M.H.","Muhammad Thahir Guhir, S.H.,M.H.","Sehudin, S.H.",2025-11-04,0,00696471-7b02-4626-ba05-3162c849ae55
+862 Pdt.P/2025/PA.JT,2025-10-24,PAW,Biasa,E-Court,"Drs. Ifdal, S.H.","Drs. Sohel, S.H.","Dra. Taslimah, M.H.","Zamzam Lubis, S.H., M.H.","Ombang Hasyim Ashari, S.Ag.",2025-11-06,0,e792d7bb-ff98-427f-8e62-818bc92038ea
+4629 Pdt.G/2025/PA.JT,2025-10-24,CT,ISTBAT,E-Court,"Dra. Mulathifah, M.H.","Drs. Sohel, S.H.","Idawati, S.Ag., M.H.","Nur Holia, S.H., M.H.",Sabar Kuswanto,2025-11-19,0,7e5626ec-e3a8-4e02-a60c-0c2b4ce23bf9
+4630 Pdt.G/2025/PA.JT,2025-10-24,CT,Biasa,E-Court,Drs. H. Syakhrani,"Drs. Zaenal Musthofa, S.H., M.H","Idawati, S.Ag., M.H.","Muhammad Syaifur Rohim, S.E.I.","Khairunas, S.H.I.",2025-11-06,0,2f2809ee-2ee2-42a5-be9c-e462b41aee9c
+4631 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Drs. Agus Abdullah, M.H.",Drs. H. Syakhrani,"Drs. Jajat Sudrajat,S.H., M.H","Mochamad Taufik, S.Ag",Ismail,2025-11-05,0,061d46a2-c629-4142-a45f-91a88a355a40
+4632 Pdt.G/2025/PA.JT,2025-10-24,CT,Biasa,E-Court,"Drs. Jajat Sudrajat, S.H., M.H",Drs. H. Syakhrani,"Drs. Agus Abdullah, M.H.","Noni Salmy, S.HI.","Evi Setyowati, S.Sos.",2025-11-03,0,88ade13a-b4c4-48d6-8c17-1e7dcd9fe4ab
+4633 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Dra. Taslimah, M.H.","Drs. Agus Abdullah, M.H.","Idawati, S.Ag., M.H.","Inayatus Salisya, S.H.,M.H.","Sehudin, S.H.",2025-11-04,0,768ad51e-22c8-464c-af31-eed99d253e25
+4634 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Drs. Ifdal, S.H.","Drs. Sohel, S.H.","Dra. Taslimah, M.H.","Endang Bahtiar, S.H., M.H.",Zainal Arifin,2025-11-06,0,348527a9-d169-4252-bb20-1ce34363daea
+4635 Pdt.G/2025/PA.JT,2025-10-24,CG,GHOIB,E-Court,"Dra. Taslimah, M.H.","Drs. Agus Abdullah, M.H.","Idawati, S.Ag., M.H.","Muhammad Thahir Guhir, S.H.,M.H.","Sehudin, S.H.",2026-03-03,0,f2a91bd1-f764-4354-9392-211996601a90
+4636 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Dra. Mulathifah, M.H.","Drs. Sohel, S.H.","Idawati, S.Ag., M.H.","Imron Rosyidi, S.H.","Rina Marlina, SE",2025-11-05,0,a6c233d8-2e60-46f9-bdad-9190d79e7194
+4637 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,Drs. H. Syakhrani,"Drs. Zaenal Musthofa, S.H., M.H","Idawati, S.Ag., M.H.","Sri Mulyati, S.Ag., M.H.","Khairunas, S.H.I.",2025-11-06,0,54919f87-4c1b-4260-bab9-c02a6b5c586a
+4638 Pdt.G/2025/PA.JT,2025-10-24,ISTBAT,ISTBAT,E-Court,"Drs. Agus Abdullah, M.H.",Drs. H. Syakhrani,"Drs. Jajat Sudrajat,S.H., M.H","Neneng Kurniati, S.Ag.",Ismail,2025-11-19,0,1ad9fff8-342b-4378-9c7a-9c3a6ffa241a
+4639 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Drs. Jajat Sudrajat, S.H., M.H",Drs. H. Syakhrani,"Drs. Agus Abdullah, M.H.","Widya Fausiah, S.E., M.H.","Evi Setyowati, S.Sos.",2025-11-03,0,48355daa-b60b-4f06-9e76-95baef94d667
+4640 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Dra. Taslimah, M.H.","Drs. Agus Abdullah, M.H.","Idawati, S.Ag., M.H.","Inayatus Salisya, S.H.,M.H.","Sehudin, S.H.",2025-11-04,0,8e4910c5-2c3d-4393-82f8-6ba148ce3f4b
+4641 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Dra. Taslimah, M.H.","Drs. Agus Abdullah, M.H.","Idawati, S.Ag., M.H.","Inayatus Salisya, S.H.,M.H.","Sehudin, S.H.",2025-11-04,0,42639965-d0d0-4810-8091-d7acc8835fd0
+4642 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,"Dra. Mulathifah, M.H.","Drs. Sohel, S.H.","Idawati, S.Ag., M.H.","Nur Holia, S.H., M.H.",Sabar Kuswanto,2025-11-05,0,5df08ed8-ee03-4ee1-9beb-eabaec78a570
+4643 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,Drs. H. Syakhrani,"Drs. Zaenal Musthofa, S.H., M.H","Idawati, S.Ag., M.H.","Muhammad Syaifur Rohim, S.E.I.","Khairunas, S.H.I.",2025-11-06,0,a8088f59-8a57-467c-8043-2030d1e70de4
+4644 Pdt.G/2025/PA.JT,2025-10-24,CG,Biasa,E-Court,Drs. H. Syakhrani,"Drs. Zaenal Musthofa, S.H., M.H","Idawati, S.Ag., M.H.","Sri Mulyati, S.Ag., M.H.","Khairunas, S.H.I.",2025-11-06,0,0f73afa3-debc-431a-9102-0428aca9582d
+863 Pdt.P/2025/PA.JT,2025-10-24,PAW,Biasa,E-Court,"Dra. Mulathifah, M.H.","Drs. Sohel, S.H.","Idawati, S.Ag., M.H.","Imron Rosyidi, S.H.","Rina Marlina, SE",2025-11-05,0,2ff0b548-3d37-4664-b961-46f89157ecb5
